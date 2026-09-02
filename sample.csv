@@ -1,4 +1,7 @@
-case_id,patient_synthetic_id,metric_primary,metric_secondary,is_stat,status_flag
-CASE-001,SYNTH-01,25.4,14.2,True,DISCORDANT
-CASE-002,SYNTH-02,12.0,4.1,False,NORMAL
-CASE-003,SYNTH-03,32.0,18.5,True,SUSPICIOUS
+case_id,patient_id,surveillance_type,organism,device_days,fever,hypotension,anc,num_cultures,colony_count,num_species,secondary_site
+CASE-001,PT-5120,clabsi,Staphylococcus aureus,4,true,false,2100,1,,,
+CASE-002,PT-7831,clabsi,Staphylococcus epidermidis,5,true,false,3200,2,,,
+CASE-003,PT-2994,clabsi,Escherichia coli,6,true,false,200,1,,,
+CASE-004,PT-6612,clabsi,Klebsiella pneumoniae,7,true,false,2800,1,,,Urine (CAUTI)
+CASE-005,PT-8301,cauti,Escherichia coli,5,true,false,,1,150000,1,
+CASE-006,PT-9411,cauti,Candida albicans,6,true,false,,1,100000,1,
