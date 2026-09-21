@@ -205,7 +205,7 @@ def evaluate_clabsi(
             central_line_days=central_line_days,
             criteria_met=[f"Blood isolate matches organism from primary infection site ({primary_site_of_infection}) within Infection Window Period."],
             rule_out_rationale=f"BSI is secondary to documented {primary_site_of_infection} infection. Excluded from primary CLABSI reporting per NHSN Secondary BSI Attribution rules.",
-            prevention_interventions=[f"Treat primary source of infection ({primary_site_of_infection})."],
+            prevention_interventions=[f"Review the attributed primary infection source and document the surveillance rationale."],
         )
 
     # 3. Mucosal Barrier Injury (MBI-LCBI) Check
@@ -235,7 +235,7 @@ def evaluate_clabsi(
                         f"MBI host factor present: {'ANC < 500/mm³ (Severe Neutropenia)' if is_severely_neutropenic else 'HSCT with GI-GVHD'}.",
                     ],
                     rule_out_rationale="Categorized as Mucosal Barrier Injury LCBI (MBI-LCBI-1). Excluded from standard institutional CLABSI denominator.",
-                    prevention_interventions=["Gut translocation prophylaxis and oncology supportive care."],
+                    prevention_interventions=["Review MBI-LCBI attribution and host-factor documentation with infection prevention/oncology teams."],
                 )
             else:
                 return CLABSIAssessment(
@@ -252,9 +252,9 @@ def evaluate_clabsi(
                     ],
                     rule_out_rationale=None,
                     prevention_interventions=[
-                        "Perform prompt central line removal evaluation with attending physician.",
+                        "Review central-line necessity and management with the treating team according to institutional policy.",
                         "Review central line maintenance bundle compliance (chlorhexidine dressing, hub scrub 15s).",
-                        "Obtain repeat blood cultures at 48h to verify clearance.",
+                        "Follow the facility's clinical management and microbiology follow-up pathway.",
                     ],
                 )
 
@@ -277,7 +277,7 @@ def evaluate_clabsi(
                             "Host meets MBI criteria (neutropenia or HSCT).",
                         ],
                         rule_out_rationale="Categorized as MBI-LCBI-2; tracked separately from standard CLABSI.",
-                        prevention_interventions=["Skin and mucosal barrier protection protocols."],
+                        prevention_interventions=["Review MBI-LCBI attribution and relevant prevention documentation."],
                     )
                 else:
                     lcbi_name = "LCBI-3" if is_infant else "LCBI-2"
@@ -295,7 +295,7 @@ def evaluate_clabsi(
                         ],
                         rule_out_rationale=None,
                         prevention_interventions=[
-                            "Assess for catheter hub or endoluminal colonization; consider line replacement.",
+                            "Review central-line necessity and source evaluation with the treating team.",
                             "Reinforce aseptic sterile blood draw technique to avoid skin contamination.",
                         ],
                     )
@@ -309,7 +309,7 @@ def evaluate_clabsi(
                     central_line_days=central_line_days,
                     criteria_met=[f"Common commensal ({organism_name}) in 2 blood cultures but NO clinical symptoms (fever/hypotension/chills)."],
                     rule_out_rationale="Common commensal isolated without documented fever (>38.0°C), chills, or hypotension (SBP < 90). Does NOT meet LCBI-2 criteria.",
-                    prevention_interventions=["Clinical observation; monitor for emerging fever or hemodynamics."],
+                    prevention_interventions=["Document surveillance criteria and continue clinical assessment per local policy."],
                 )
         else:
             # Single commensal bottle
@@ -389,7 +389,7 @@ def evaluate_cauti(
             catheter_days=catheter_days,
             criteria_met=[f"Yeast / Fungal isolate: {organism_name}"],
             rule_out_rationale="Candida spp., yeast, and fungal organisms are STRICTLY EXCLUDED from CDC NHSN CAUTI definition.",
-            prevention_interventions=["Avoid unnecessary antifungal therapy for asymptomatic candiduria; remove urinary catheter."],
+            prevention_interventions=["Review catheter necessity and local candiduria management guidance; this result is a surveillance exclusion."],
         )
 
     # 2. Catheter Eligibility Check
@@ -479,8 +479,8 @@ def evaluate_cauti(
             ],
             rule_out_rationale=None,
             prevention_interventions=[
-                "Remove or replace indwelling catheter immediately under sterile technique.",
-                "Initiate targeted antimicrobial therapy guided by urine sensitivities.",
+                "Review indwelling-catheter necessity and management with the treating team.",
+                "Follow local clinical treatment guidance; this utility does not prescribe therapy.",
                 "Review daily indications for catheter continuation.",
             ],
         )
@@ -501,8 +501,8 @@ def evaluate_cauti(
             ],
             rule_out_rationale=None,
             prevention_interventions=[
-                "Treat systemic bacteremia secondary to asymptomatic urinary source.",
-                "Discontinue indwelling urinary catheter.",
+                "Escalate the matching blood/urine finding for clinical review and document ABUTI attribution.",
+                "Review indwelling-catheter necessity with the treating team.",
             ],
         )
     else:
@@ -516,7 +516,7 @@ def evaluate_cauti(
             catheter_days=catheter_days,
             criteria_met=["Urine culture >= 10^5 CFU/mL but NO clinical symptoms (asymptomatic bacteriuria)."],
             rule_out_rationale="Asymptomatic bacteriuria without fever or local symptoms does NOT meet NHSN CAUTI criteria. Antimicrobial treatment is generally NOT indicated.",
-            prevention_interventions=["Avoid inappropriate antibiotic treatment for asymptomatic catheter colonization."],
+            prevention_interventions=["Document the surveillance non-event and follow local asymptomatic bacteriuria guidance."],
         )
 
 
@@ -615,8 +615,29 @@ class DeviceHAISentinelEngine:
         return calculate_sir_and_dur(**kwargs)
 
 
+def _parse_bool(value: Any, default: bool = False) -> bool:
+    """Parse common CSV boolean representations without treating 'false' as truthy."""
+    if value is None or value == "":
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"true", "1", "yes", "y"}
+
+
+def _parse_int(value: Any, default: int = 0) -> int:
+    if value is None or value == "":
+        return default
+    return int(value)
+
+
+def _parse_float(value: Any, default: Optional[float] = None) -> Optional[float]:
+    if value is None or value == "":
+        return default
+    return float(value)
+
+
 def process_batch_csv(input_csv_path: str, output_csv_path: str) -> int:
-    """Processes batch surveillance records from CSV."""
+    """Process batch surveillance records from CSV using the canonical criteria."""
     engine = DeviceHAISentinelEngine()
     processed_count = 0
 
@@ -629,23 +650,35 @@ def process_batch_csv(input_csv_path: str, output_csv_path: str) -> int:
 
     output_rows = []
     for row in rows:
-        surveillance_type = row.get("surveillance_type", row.get("type", "clabsi")).strip().lower()
-        org = row.get("organism", row.get("organism_name", "Staphylococcus aureus"))
-        line_days = int(row.get("device_days", row.get("line_days", 4)))
-        fever = str(row.get("fever", "true")).lower() in ("true", "1", "yes")
-        hypotension = str(row.get("hypotension", "false")).lower() in ("true", "1", "yes")
-        anc_val = float(row.get("anc", 1500.0)) if "anc" in row and row["anc"] else None
-        num_cultures = int(row.get("num_cultures", 1))
+        surveillance_type = str(row.get("surveillance_type", row.get("type", "clabsi"))).strip().lower()
+        org = str(row.get("organism", row.get("organism_name", "Staphylococcus aureus"))).strip()
+        line_days = _parse_int(row.get("device_days", row.get("line_days")), 4)
+        fever = _parse_bool(row.get("fever"), False)
+        hypotension = _parse_bool(row.get("hypotension"), False)
+        anc_val = _parse_float(row.get("anc"), None)
+        num_cultures = _parse_int(row.get("num_cultures"), 1)
 
         if "cauti" in surveillance_type:
-            cfu = float(row.get("colony_count", 100000.0))
-            num_species = int(row.get("num_species", 1))
+            cfu = _parse_float(row.get("colony_count"), 100000.0)
+            num_species = _parse_int(row.get("num_species"), 1)
             res = engine.evaluate_cauti_case(
                 organism_name=org,
-                colony_count_cfu_ml=cfu,
+                colony_count_cfu_ml=float(cfu),
                 number_of_organism_species_in_culture=num_species,
                 catheter_days=line_days,
+                catheter_in_place_on_doe_or_removed_day_prior=_parse_bool(
+                    row.get("device_on_doe_or_removed_day_prior", row.get("catheter_on_doe_or_removed_day_prior")),
+                    True,
+                ),
+                has_indwelling_urinary_catheter=_parse_bool(row.get("has_iuc"), True),
                 fever_gt_38c=fever,
+                suprapubic_tenderness=_parse_bool(row.get("suprapubic"), False),
+                costovertebral_angle_pain=_parse_bool(row.get("cva_pain"), False),
+                urgency_frequency_dysuria=_parse_bool(row.get("urinary_symptoms"), False),
+                urinary_symptoms_occurred_without_iuc=_parse_bool(
+                    row.get("urinary_symptoms_without_iuc"), False
+                ),
+                blood_culture_matches_urine=_parse_bool(row.get("blood_match"), False),
             )
             out = dict(row)
             out["verdict"] = res.verdict.value
@@ -660,9 +693,23 @@ def process_batch_csv(input_csv_path: str, output_csv_path: str) -> int:
                 organism_name=org,
                 number_of_positive_blood_cultures=num_cultures,
                 central_line_days=line_days,
+                line_in_place_on_doe_or_removed_day_prior=_parse_bool(
+                    row.get("device_on_doe_or_removed_day_prior", row.get("line_on_doe_or_removed_day_prior")),
+                    True,
+                ),
+                patient_has_central_line=_parse_bool(row.get("has_central_line"), True),
+                is_midline_or_peripheral_only=_parse_bool(row.get("midline_or_peripheral_only"), False),
                 fever_gt_38c=fever,
                 hypotension_sbp_lt_90=hypotension,
+                chills_present=_parse_bool(row.get("chills"), False),
+                patient_age_years=_parse_int(row.get("age_years"), 45),
+                hypothermia_lt_36c=_parse_bool(row.get("hypothermia"), False),
+                apnea_or_bradycardia=_parse_bool(row.get("apnea_or_bradycardia"), False),
                 absolute_neutrophil_count_anc=anc_val,
+                neutropenia_qualifying_days=_parse_int(
+                    row.get("anc_qualifying_days", row.get("neutropenia_qualifying_days")), 0
+                ),
+                is_hsct_with_gi_gvhd=_parse_bool(row.get("hsct_gvhd"), False),
                 has_matching_positive_site_culture=bool(secondary),
                 primary_site_of_infection=secondary if secondary else None,
             )
