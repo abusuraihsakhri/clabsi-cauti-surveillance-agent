@@ -1,7 +1,7 @@
 """
-Clinical Algorithmic Engine & Guideline Rules for DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter.
+Legacy threshold-compatibility engine.
 Domain: Infection Control
-Standard: CDC NHSN Surveillance Guidelines
+These arbitrary demonstration thresholds are not CDC NHSN case definitions.
 """
 import math
 from typing import Dict, Any, List, Optional
@@ -9,7 +9,7 @@ from .models import ClinicalCasePayload, AgentAlert, UrgencyLevel, ClinicalInteg
 
 
 class ClinicalDomainEngine:
-    GUIDELINE = "CDC NHSN Surveillance Guidelines"
+    GUIDELINE = "Legacy threshold demonstration; not an NHSN case definition"
     PRIMARY_BASELINE_LIMIT = 20.0
     SECONDARY_ALERT_LIMIT = 10.0
 
@@ -18,7 +18,7 @@ class ClinicalDomainEngine:
         if value > cls.PRIMARY_BASELINE_LIMIT:
             return {
                 "title": "Primary Metric Threshold Exceeded",
-                "finding": f"Observed value ({value:.2f}) exceeds CDC NHSN Surveillance Guidelines clinical baseline limit ({cls.PRIMARY_BASELINE_LIMIT:.1f}).",
+                "finding": f"Observed value ({value:.2f}) exceeds the legacy demonstration threshold ({cls.PRIMARY_BASELINE_LIMIT:.1f}).",
                 "recommendation": "Perform immediate secondary verification and calibration review.",
             }
         return None
@@ -40,6 +40,6 @@ class ClinicalDomainEngine:
             return {
                 "title": "Phenotypic / Biomarker Discordance Identified",
                 "finding": f"Status flag '{status_flag}' indicates divergence from standard diagnostic concordance.",
-                "recommendation": f"Order reflex confirmatory testing per CDC NHSN Surveillance Guidelines clinical recommendations.",
+                "recommendation": f"Use the canonical surveillance engine and current NHSN guidance for case review.",
             }
         return None
