@@ -128,11 +128,23 @@ class TestMBILCBIAndSecondaryBSI(unittest.TestCase):
             number_of_positive_blood_cultures=1,
             central_line_days=5,
             absolute_neutrophil_count_anc=250.0,  # < 500/mm³
+            neutropenia_qualifying_days=2,
             fever_gt_38c=True,
         )
         self.assertEqual(res.verdict, SurveillanceVerdict.MBI_LCBI)
         self.assertEqual(res.lcbi_type, "MBI-LCBI-1")
         self.assertFalse(res.is_reportable_clabsi)  # Stratified separately
+
+    def test_single_low_anc_day_does_not_meet_mbi_host_factor(self):
+        res = evaluate_clabsi(
+            organism_name="Escherichia coli",
+            number_of_positive_blood_cultures=1,
+            central_line_days=5,
+            absolute_neutrophil_count_anc=250.0,
+            neutropenia_qualifying_days=1,
+        )
+        self.assertEqual(res.verdict, SurveillanceVerdict.CONFIRMED_CLABSI)
+        self.assertEqual(res.lcbi_type, "LCBI-1")
 
     def test_mbi_lcbi_1_hsct_gi_gvhd_enterococcus(self):
         res = evaluate_clabsi(
@@ -151,6 +163,7 @@ class TestMBILCBIAndSecondaryBSI(unittest.TestCase):
             central_line_days=5,
             fever_gt_38c=True,
             absolute_neutrophil_count_anc=100.0,
+            neutropenia_qualifying_days=2,
         )
         self.assertEqual(res.verdict, SurveillanceVerdict.MBI_LCBI)
         self.assertEqual(res.lcbi_type, "MBI-LCBI-2")
@@ -240,6 +253,28 @@ class TestCAUTISurveillance(unittest.TestCase):
         self.assertEqual(res.verdict, SurveillanceVerdict.CONTAMINANT_OR_COLONIZATION)
         self.assertFalse(res.is_reportable_cauti)
 
+    def test_urinary_symptoms_do_not_count_while_iuc_in_place(self):
+        res = evaluate_cauti(
+            organism_name="Escherichia coli",
+            colony_count_cfu_ml=100000.0,
+            number_of_organism_species_in_culture=1,
+            catheter_days=4,
+            urgency_frequency_dysuria=True,
+            urinary_symptoms_occurred_without_iuc=False,
+        )
+        self.assertEqual(res.verdict, SurveillanceVerdict.CONTAMINANT_OR_COLONIZATION)
+
+    def test_urinary_symptoms_can_count_when_documented_without_iuc(self):
+        res = evaluate_cauti(
+            organism_name="Escherichia coli",
+            colony_count_cfu_ml=100000.0,
+            number_of_organism_species_in_culture=1,
+            catheter_days=4,
+            urgency_frequency_dysuria=True,
+            urinary_symptoms_occurred_without_iuc=True,
+        )
+        self.assertEqual(res.verdict, SurveillanceVerdict.CONFIRMED_CAUTI)
+
     def test_asymptomatic_bacteremic_uti_abuti(self):
         res = evaluate_cauti(
             organism_name="Enterococcus faecalis",
@@ -280,7 +315,7 @@ class TestEpidemiologicalMetrics(unittest.TestCase):
         self.assertAlmostEqual(metrics.sir, 0.952, places=2)
         self.assertEqual(metrics.device_utilization_ratio, 0.400)
         self.assertEqual(metrics.infection_rate_per_1000_device_days, 4.0)
-        self.assertIn("CONCORDANT", metrics.sir_interpretation)
+        self.assertIn("NOT STATISTICALLY DIFFERENT", metrics.sir_interpretation)
 
     def test_sir_statistically_elevated(self):
         metrics = calculate_sir_and_dur(
@@ -323,7 +358,7 @@ class TestBatchProcessingAndEngine(unittest.TestCase):
         )
         self.assertLess(metrics.sir, 1.0)
         self.assertLess(metrics.sir_confidence_interval_95[1], 1.0)
-        self.assertIn("STATISTICALLY SUPERIOR", metrics.sir_interpretation)
+        self.assertIn("STATISTICALLY LOWER", metrics.sir_interpretation)
 
     def test_clabsi_serratia_marcescens(self):
         res = evaluate_clabsi(
@@ -353,6 +388,17 @@ class TestBatchProcessingAndEngine(unittest.TestCase):
             number_of_positive_blood_cultures=1,
             central_line_days=4,
         )
+        self.assertEqual(clabsi_res.verdict, SurveillanceVerdict.CONFIRMED_CLABSI)
+
+        cauti_res = engine.evaluate_cauti_case(
+            organism_name="Escherichia coli",
+            colony_count_cfu_ml=100000.0,
+            number_of_organism_species_in_culture=1,
+            catheter_days=4,
+            fever_gt_38c=True,
+        )
+        self.assertEqual(cauti_res.verdict, SurveillanceVerdict.CONFIRMED_CAUTI)
+
     def test_batch_csv_surveillance(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             in_csv = os.path.join(tmpdir, "surv_input.csv")
