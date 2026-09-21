@@ -5,7 +5,7 @@ Command-Line Interface for the CLABSI & CAUTI surveillance utilities.
 Usage:
     python cli.py clabsi --organism "Staphylococcus aureus" --cultures 1 --days 5 --fever
     python cli.py clabsi --organism "Staphylococcus epidermidis" --cultures 2 --days 4 --fever
-    python cli.py clabsi --organism "Escherichia coli" --cultures 1 --days 6 --anc 300
+    python cli.py clabsi --organism "Escherichia coli" --cultures 1 --days 6 --anc 300 --anc-days 2
     python cli.py cauti --organism "Escherichia coli" --cfu 100000 --days 4 --fever
     python cli.py cauti --organism "Candida albicans" --cfu 100000 --days 5 --fever
     python cli.py metrics --observed 4 --predicted 5.2 --device-days 1200 --patient-days 3500
@@ -54,11 +54,11 @@ def cmd_clabsi(args):
         print(json.dumps(asdict(result), indent=2, default=str))
     else:
         print("=" * 70)
-        print("  CDC NHSN CLABSI SURVEILLANCE ARBITRATION")
+        print("  CLABSI SURVEILLANCE SCREENING RESULT")
         print("=" * 70)
         print(f"  Surveillance Verdict:    [{result.verdict.value.upper()}]")
         print(f"  Classification Type:     {result.lcbi_type or 'None'}")
-        print(f"  NHSN Public Reportable:  {'YES (Counted in CLABSI SIR)' if result.is_reportable_clabsi else 'NO'}")
+        print(f"  CLABSI Metric Flag:      {'YES' if result.is_reportable_clabsi else 'NO'}")
         print(f"  Organism:                {result.organism_name} ({result.organism_type})")
         print(f"  Central Line Days:       {result.central_line_days} days")
         print("\n  Criteria Evaluated:")
@@ -68,7 +68,7 @@ def cmd_clabsi(args):
             print(f"\n  Rule-Out / Attribution Rationale:")
             print(f"    ! {result.rule_out_rationale}")
         if result.prevention_interventions:
-            print("\n  Infection Prevention Interventions:")
+            print("\n  Surveillance Follow-up Notes:")
             for p in result.prevention_interventions:
                 print(f"    - {p}")
         print("=" * 70)
@@ -95,11 +95,11 @@ def cmd_cauti(args):
         print(json.dumps(asdict(result), indent=2, default=str))
     else:
         print("=" * 70)
-        print("  CDC NHSN CAUTI SURVEILLANCE ARBITRATION")
+        print("  CAUTI SURVEILLANCE SCREENING RESULT")
         print("=" * 70)
         print(f"  Surveillance Verdict:    [{result.verdict.value.upper()}]")
         print(f"  Classification Type:     {result.cauti_type or 'None'}")
-        print(f"  NHSN Public Reportable:  {'YES (Counted in CAUTI SIR)' if result.is_reportable_cauti else 'NO'}")
+        print(f"  CAUTI Metric Flag:       {'YES' if result.is_reportable_cauti else 'NO'}")
         print(f"  Organism:                {result.organism_name} ({result.colony_count_cfu_ml:.0f} CFU/mL)")
         print(f"  Catheter Dwell Time:     {result.catheter_days} days")
         print("\n  Criteria Evaluated:")
@@ -109,7 +109,7 @@ def cmd_cauti(args):
             print(f"\n  Rule-Out / Exclusion Rationale:")
             print(f"    ! {result.rule_out_rationale}")
         if result.prevention_interventions:
-            print("\n  Infection Prevention Interventions:")
+            print("\n  Surveillance Follow-up Notes:")
             for p in result.prevention_interventions:
                 print(f"    - {p}")
         print("=" * 70)
@@ -128,7 +128,7 @@ def cmd_metrics(args):
         print(json.dumps(asdict(res), indent=2, default=str))
     else:
         print("=" * 70)
-        print("  CDC NHSN EPIDEMIOLOGICAL METRICS & BENCHMARKS")
+        print("  SIR / DEVICE UTILIZATION METRICS")
         print("=" * 70)
         print(f"  Observed HAIs:           {res.observed_events}")
         print(f"  Predicted HAIs:          {res.predicted_events}")
@@ -153,14 +153,14 @@ def cmd_batch(args):
 
 def cmd_interactive(args):
     print("=" * 70)
-    print("  CDC NHSN DEVICE-ASSOCIATED INFECTION SURVEILLANCE WIZARD")
+    print("  DEVICE-ASSOCIATED INFECTION SURVEILLANCE INPUT")
     print("=" * 70)
     print("Select Module: [1] CLABSI  [2] CAUTI  [3] Epidemiological SIR/DUR Calculator")
     choice = input("Choice (1/2/3): ").strip()
 
     if choice == "1":
         org = input("Isolated Organism (e.g. Staphylococcus aureus, S. epidermidis, E. coli): ").strip()
-        cult_str = input("Number of positive blood culture bottles (default 1): ").strip() or "1"
+        cult_str = input("Number of matching positive blood specimens (default 1): ").strip() or "1"
         days_str = input("Central line dwell time in calendar days (default 4): ").strip() or "4"
         fever = input("Fever (>38.0°C) present? (y/n, default y): ").lower().startswith("y")
         anc_str = input("Absolute Neutrophil Count ANC in /mm³ (optional): ").strip()
@@ -228,7 +228,7 @@ def main(argv=None):
     # CLABSI
     p_clabsi = subparsers.add_parser("clabsi", help="Evaluate CLABSI criteria")
     p_clabsi.add_argument("--organism", required=True, help="Isolated blood organism name")
-    p_clabsi.add_argument("--cultures", type=int, default=1, help="Number of positive blood culture bottles")
+    p_clabsi.add_argument("--cultures", type=int, default=1, help="Number of matching positive blood specimens")
     p_clabsi.add_argument("--days", type=int, default=4, help="Central line dwell time (calendar days)")
     p_clabsi.add_argument("--fever", action="store_true", help="Fever > 38.0°C")
     p_clabsi.add_argument("--hypotension", action="store_true", help="Hypotension SBP < 90 mmHg")
@@ -272,7 +272,7 @@ def main(argv=None):
     p_batch.add_argument("-o", "--output", default="surveillance_results.csv", help="Output CSV file")
 
     # Interactive
-    p_inter = subparsers.add_parser("interactive", help="Interactive surveillance arbiter")
+    p_inter = subparsers.add_parser("interactive", help="Interactive surveillance screening")
 
     args = parser.parse_args(argv)
 
