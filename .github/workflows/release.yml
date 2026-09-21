@@ -1,0 +1,59 @@
+name: Release v2.1.0
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: startsWith(github.event.head_commit.message, 'Release v2.1.0')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Verify package version
+        run: |
+          python - <<'PY'
+          import pathlib
+          import re
+
+          text = pathlib.Path("pyproject.toml").read_text(encoding="utf-8")
+          match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
+          if not match or match.group(1) != "2.1.0":
+              raise SystemExit("pyproject.toml version is not 2.1.0")
+          PY
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v2.1.0 >/dev/null 2>&1; then
+            echo "v2.1.0 already exists; no action needed."
+            exit 0
+          fi
+
+          cat > /tmp/release-notes.md <<'EOF'
+          ## v2.1.0
+
+          - Align selected CLABSI/CAUTI screening logic with 2026 CDC NHSN criteria.
+          - Add explicit MBI neutropenia-day and IUC urinary-symptom timing inputs.
+          - Route the installed CLI and optional API through the canonical surveillance engine.
+          - Add safe terminology-review handling for unlisted CLABSI organisms.
+          - Improve CSV batch parity and boolean parsing.
+          - Add the responsive GitHub Pages browser interface with client-side Pyodide.
+          - Add CI, dependency auditing, Pages deployment, and live-site verification.
+          - Replace unsupported autonomous, enterprise, PRO, and compliance claims with scoped documentation.
+
+          This project implements a bounded surveillance aid and does not replace the current NHSN manuals, Terminology Browser, or facility-specific review.
+          EOF
+
+          gh release create v2.1.0 \
+            --target "$GITHUB_SHA" \
+            --title "v2.1.0" \
+            --notes-file /tmp/release-notes.md
