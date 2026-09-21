@@ -399,6 +399,18 @@ class TestBatchProcessingAndEngine(unittest.TestCase):
         )
         self.assertEqual(cauti_res.verdict, SurveillanceVerdict.CONFIRMED_CAUTI)
 
+    def test_batch_parses_false_boolean_strings(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            in_csv = os.path.join(tmpdir, "bool_input.csv")
+            out_csv = os.path.join(tmpdir, "bool_output.csv")
+            with open(in_csv, "w", encoding="utf-8") as f:
+                f.write("surveillance_type,organism,device_days,fever,num_cultures\n")
+                f.write("clabsi,Staphylococcus epidermidis,5,false,2\n")
+            process_batch_csv(in_csv, out_csv)
+            with open(out_csv, "r", encoding="utf-8") as f:
+                row = next(__import__("csv").DictReader(f))
+            self.assertEqual(row["verdict"], "contaminant_or_colonization")
+
     def test_batch_csv_surveillance(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             in_csv = os.path.join(tmpdir, "surv_input.csv")
@@ -415,8 +427,11 @@ class TestBatchProcessingAndEngine(unittest.TestCase):
             self.assertTrue(os.path.exists(out_csv))
 
             with open(out_csv, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-                self.assertEqual(len(lines), 4)
+                rows = list(__import__("csv").DictReader(f))
+                self.assertEqual(len(rows), 3)
+                self.assertEqual(rows[0]["verdict"], "confirmed_clabsi")
+                self.assertEqual(rows[1]["verdict"], "mbi_lcbi")
+                self.assertEqual(rows[2]["verdict"], "contaminant_or_colonization")
 
 
 if __name__ == "__main__":
