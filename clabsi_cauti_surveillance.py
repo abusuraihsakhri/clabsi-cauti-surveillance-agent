@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-CDC NHSN CLABSI & CAUTI Autonomous Surveillance & Epidemiological Arbiter
-=========================================================================
-Comprehensive clinical epidemiology module implementing official CDC NHSN
-(National Healthcare Safety Network) surveillance algorithms:
+CLABSI & CAUTI Surveillance Utilities
+=====================================
+Deterministic clinical epidemiology utilities implementing selected 2026 CDC
+NHSN (National Healthcare Safety Network) surveillance criteria:
 - Central Line-Associated Bloodstream Infection (CLABSI)
 - Catheter-Associated Urinary Tract Infection (CAUTI)
 - Mucosal Barrier Injury Laboratory-Confirmed Bloodstream Infection (MBI-LCBI)
@@ -134,12 +134,18 @@ def evaluate_clabsi(
     hypothermia_lt_36c: bool = False,
     apnea_or_bradycardia: bool = False,
     absolute_neutrophil_count_anc: Optional[float] = None,
+    neutropenia_qualifying_days: int = 0,
     is_hsct_with_gi_gvhd: bool = False,
     has_matching_positive_site_culture: bool = False,
     primary_site_of_infection: Optional[str] = None,
 ) -> CLABSIAssessment:
     """
-    Evaluates CDC NHSN CLABSI / MBI-LCBI / Secondary BSI criteria.
+    Evaluate selected CDC NHSN CLABSI / MBI-LCBI / Secondary BSI criteria.
+
+    neutropenia_qualifying_days is the number of separate days in the
+    7-day MBI window with ANC and/or WBC <500 cells/mm3. NHSN requires at
+    least two qualifying days. is_hsct_with_gi_gvhd should only be set after
+    the caller has verified the current NHSN allogeneic-HSCT host criterion.
     """
     org_key = organism_name.strip().lower()
     org_info = NHSN_ORGANISM_REGISTRY.get(org_key, {
@@ -203,7 +209,8 @@ def evaluate_clabsi(
         )
 
     # 3. Mucosal Barrier Injury (MBI-LCBI) Check
-    is_severely_neutropenic = (absolute_neutrophil_count_anc is not None and absolute_neutrophil_count_anc < 500.0)
+    has_low_anc = absolute_neutrophil_count_anc is not None and absolute_neutrophil_count_anc < 500.0
+    is_severely_neutropenic = has_low_anc and neutropenia_qualifying_days >= 2
     is_mbi_candidate = (is_severely_neutropenic or is_hsct_with_gi_gvhd) and is_mbi_eligible
 
     # 4. LCBI Evaluation
@@ -359,10 +366,15 @@ def evaluate_cauti(
     suprapubic_tenderness: bool = False,
     costovertebral_angle_pain: bool = False,
     urgency_frequency_dysuria: bool = False,
+    urinary_symptoms_occurred_without_iuc: bool = False,
     blood_culture_matches_urine: bool = False,
 ) -> CAUTIAssessment:
     """
-    Evaluates CDC NHSN CAUTI (SUTI-1a, SUTI-1b, ABUTI) criteria.
+    Evaluate selected CDC NHSN CAUTI (SUTI-1a and catheter-associated ABUTI)
+    criteria.
+
+    Urinary urgency, frequency, or dysuria can only be used when the symptom
+    occurred while the indwelling urinary catheter was not in place.
     """
     org_key = organism_name.strip().lower()
 
@@ -448,7 +460,8 @@ def evaluate_cauti(
         )
 
     # 4. Symptoms Check
-    has_local_symptoms = suprapubic_tenderness or costovertebral_angle_pain or urgency_frequency_dysuria
+    eligible_urinary_symptoms = urgency_frequency_dysuria and urinary_symptoms_occurred_without_iuc
+    has_local_symptoms = suprapubic_tenderness or costovertebral_angle_pain or eligible_urinary_symptoms
     has_symptoms = fever_gt_38c or has_local_symptoms
 
     if has_symptoms:
@@ -531,8 +544,9 @@ def calculate_sir_and_dur(
     patient_days: int,
 ) -> EpidemiologicalMetrics:
     """
-    Calculates Standardized Infection Ratio (SIR) with Poisson exact 95% CI
-    and Device Utilization Ratio (DUR).
+    Calculate Standardized Infection Ratio (SIR), a Byar-approximation 95%
+    confidence interval for the observed Poisson count, and Device Utilization
+    Ratio (DUR).
     """
     if patient_days <= 0 or device_days < 0 or observed_events < 0:
         raise ValueError("Patient days must be positive; device days and observed events non-negative.")
@@ -547,8 +561,9 @@ def calculate_sir_and_dur(
     else:
         sir = round(observed_events / predicted_events, 3)
 
-        # Exact Poisson 95% Confidence Interval for SIR
-        # Using Byar's approximation / exact Poisson quantile
+        # Approximate Poisson 95% confidence interval for SIR using Byar's
+        # approximation. The zero-event upper bound uses the exact Poisson
+        # 95% upper limit for zero observed events.
         if observed_events == 0:
             ci_lower = 0.0
             ci_upper = round(3.689 / predicted_events, 3)
@@ -564,11 +579,11 @@ def calculate_sir_and_dur(
             ci_upper = round(upper_count / predicted_events, 3)
 
         if sir > 1.0 and ci_lower > 1.0:
-            interp = "STATISTICALLY ELEVATED: Infection rate is significantly higher than national baseline (p < 0.05)."
+            interp = "STATISTICALLY ELEVATED: the approximate 95% SIR interval is entirely above 1.0."
         elif sir < 1.0 and ci_upper < 1.0:
-            interp = "STATISTICALLY SUPERIOR: Infection rate is significantly lower than national baseline (p < 0.05)."
+            interp = "STATISTICALLY LOWER: the approximate 95% SIR interval is entirely below 1.0."
         else:
-            interp = "CONCORDANT: Infection rate is within expected statistical variation compared to national baseline."
+            interp = "NOT STATISTICALLY DIFFERENT: the approximate 95% SIR interval includes 1.0."
 
     return EpidemiologicalMetrics(
         observed_events=observed_events,
