@@ -1,5 +1,7 @@
 # CLABSI & CAUTI Surveillance Utilities
 
+### [Open the Live Application →](https://abusuraihsakhri.github.io/clabsi-cauti-surveillance-agent/)
+
 Browser and command-line utilities for screening selected **2026 CDC National Healthcare Safety Network (NHSN)** CLABSI, CAUTI, MBI-LCBI, and device-associated infection metrics.
 
 The project is intended for surveillance workflow support, testing, and education. It is **not** a complete implementation of every NHSN rule, the NHSN Terminology Browser, or facility-specific reporting policy, and it does not replace infection-prevention review.
@@ -22,7 +24,6 @@ The GitHub Pages interface uses the same `clabsi_cauti_surveillance.py` module a
 
 Form values are processed locally by the application and are not sent to an application backend. The browser must fetch Pyodide from jsDelivr when the runtime loads, so normal browser/network metadata may still be visible to that CDN. Do not enter protected health information into public/shared devices or workflows without appropriate institutional controls.
 
-A verified live application link will be placed here after the Pages deployment is confirmed.
 
 ## Installation
 
