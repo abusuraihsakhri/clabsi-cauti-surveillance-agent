@@ -1,6 +1,7 @@
 """
-Distributed Component Hierarchy & Executive Coordinator for DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter.
+Legacy threshold-compatibility coordinator.
 Domain: Infection Control
+Use clabsi_cauti_surveillance.py for the canonical surveillance criteria.
 """
 import uuid
 from typing import Dict, Any, List, Optional
@@ -60,7 +61,7 @@ class PreventableFractionScorerAgent:
 
 
 class DeviceHAICoordinator:
-    """Executive Coordinator & Air-Gapped Supervisory Interface."""
+    """Legacy compatibility coordinator."""
     def __init__(self):
         self.agent_1 = DeviceDwellTimeAgent()
         self.agent_2 = NHSNDefinitionValidatorAgent()
@@ -103,8 +104,8 @@ class DeviceHAICoordinator:
     def query_supervisory_chat(self, user_query: str) -> str:
         q = user_query.strip().lower()
         if "status" in q or "summary" in q:
-            return f"DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter currently tracking {len(self.case_registry)} cases in on-premises memory."
+            return f"Legacy compatibility coordinator is tracking {len(self.case_registry)} cases in process memory."
         elif "guideline" in q or "standard" in q:
-            return "Active clinical surveillance operates under CDC NHSN Surveillance Guidelines validated protocols."
+            return "Use clabsi_cauti_surveillance.py and current CDC NHSN guidance for surveillance criteria."
         else:
-            return f"DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter executive agent online. Zero-PHI air-gapped monitoring active."
+            return "Legacy threshold compatibility coordinator is available."
