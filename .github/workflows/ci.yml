@@ -32,6 +32,13 @@ jobs:
           python -m pip install -e .
           python -m pip install pytest
 
+      - name: Audit optional server dependencies
+        if: matrix.python-version == '3.12'
+        run: |
+          python -m pip install pip-audit
+          printf 'fastapi>=0.115,<1\nuvicorn>=0.32,<1\n' > /tmp/server-requirements.txt
+          pip-audit -r /tmp/server-requirements.txt
+
       - name: Compile source
         run: python -m compileall -q .
 
