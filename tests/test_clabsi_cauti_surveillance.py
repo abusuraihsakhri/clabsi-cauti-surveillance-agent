@@ -31,6 +31,16 @@ class TestCLABSISurveillance(unittest.TestCase):
         self.assertEqual(res.lcbi_type, "LCBI-1")
         self.assertTrue(res.is_reportable_clabsi)
 
+    def test_unknown_organism_requires_terminology_review(self):
+        res = evaluate_clabsi(
+            organism_name="Example organism not in registry",
+            number_of_positive_blood_cultures=1,
+            central_line_days=5,
+        )
+        self.assertEqual(res.verdict, SurveillanceVerdict.INDETERMINATE)
+        self.assertFalse(res.is_reportable_clabsi)
+        self.assertIn("Terminology Browser", res.rule_out_rationale)
+
     def test_lcbi_1_pseudomonas_aeruginosa(self):
         res = evaluate_clabsi(
             organism_name="Pseudomonas aeruginosa",
@@ -159,6 +169,18 @@ class TestMBILCBIAndSecondaryBSI(unittest.TestCase):
     def test_mbi_lcbi_2_streptococcus_mitis_neutropenia(self):
         res = evaluate_clabsi(
             organism_name="Streptococcus mitis",
+            number_of_positive_blood_cultures=2,
+            central_line_days=5,
+            fever_gt_38c=True,
+            absolute_neutrophil_count_anc=100.0,
+            neutropenia_qualifying_days=2,
+        )
+        self.assertEqual(res.verdict, SurveillanceVerdict.MBI_LCBI)
+        self.assertEqual(res.lcbi_type, "MBI-LCBI-2")
+
+    def test_mbi_lcbi_2_rothia_neutropenia(self):
+        res = evaluate_clabsi(
+            organism_name="Rothia mucilaginosa",
             number_of_positive_blood_cultures=2,
             central_line_days=5,
             fever_gt_38c=True,
