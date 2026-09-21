@@ -54,3 +54,42 @@ jobs:
           curl --fail --silent --show-error --retry 5 --retry-delay 2 "${PAGE_URL}clabsi_cauti_surveillance.py" -o /tmp/surveillance.py
           grep -q "def evaluate_clabsi" /tmp/surveillance.py
           curl --fail --silent --show-error --retry 3 "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.js" -o /dev/null
+
+      - name: Browser Pyodide smoke test
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          command -v google-chrome >/dev/null
+          python -m pip install --quiet selenium
+          python - <<'PY'
+          import os
+
+          from selenium import webdriver
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.support import expected_conditions as EC
+          from selenium.webdriver.support.ui import WebDriverWait
+
+          options = webdriver.ChromeOptions()
+          options.add_argument("--headless=new")
+          options.add_argument("--no-sandbox")
+          options.add_argument("--disable-dev-shm-usage")
+
+          driver = webdriver.Chrome(options=options)
+          try:
+              driver.set_page_load_timeout(60)
+              driver.get(os.environ["PAGE_URL"])
+              wait = WebDriverWait(driver, 90)
+              wait.until(
+                  lambda d: d.find_element(By.ID, "runtimeText").text == "Python ready"
+              )
+              analyze = wait.until(
+                  EC.element_to_be_clickable((By.CSS_SELECTOR, "#clabsiForm .primary"))
+              )
+              driver.execute_script("arguments[0].click();", analyze)
+              wait.until(
+                  lambda d: "CONFIRMED CLABSI"
+                  in d.find_element(By.ID, "resultContent").text
+              )
+          finally:
+              driver.quit()
+          PY
