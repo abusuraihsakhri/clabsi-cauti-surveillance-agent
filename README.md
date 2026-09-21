@@ -133,7 +133,7 @@ GitHub Actions also compiles the source, installs the package, runs the tests on
 
 The core engine intentionally implements a bounded set of criteria rather than claiming full NHSN conformance. In particular:
 
-- The local organism registry is a convenience subset and does not replace the current NHSN Terminology Browser.
+- The local organism registry is a convenience subset and does not replace the current NHSN Terminology Browser. Unlisted CLABSI organisms return an indeterminate terminology-review result rather than being assumed to be recognized pathogens.
 - The caller is responsible for establishing Infection Window Period, Repeat Infection Timeframe, present-on-admission/healthcare-associated timing, location attribution, and other criteria not represented by the function arguments.
 - The HSCT MBI flag is caller-verified; the code does not reconstruct transplant timing or GI-GVHD/diarrhea documentation.
 - Secondary BSI attribution is represented as an explicit input rather than a complete site-specific attribution engine.
