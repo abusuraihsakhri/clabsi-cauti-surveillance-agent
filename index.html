@@ -327,7 +327,7 @@
         btn.title=btn.getAttribute("aria-label");
       }
       const storedTheme=localStorage.getItem("theme");
-      setTheme(storedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+      setTheme(storedTheme || "light");
       q("#themeToggle").addEventListener("click",()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark"));
 
       qa(".tab").forEach(btn=>btn.addEventListener("click",()=>{
