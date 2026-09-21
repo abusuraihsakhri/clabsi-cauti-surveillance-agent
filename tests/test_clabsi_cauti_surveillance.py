@@ -417,10 +417,10 @@ class TestBatchProcessingAndEngine(unittest.TestCase):
             out_csv = os.path.join(tmpdir, "surv_output.csv")
 
             with open(in_csv, "w", encoding="utf-8") as f:
-                f.write("surveillance_type,organism,device_days,fever,anc,num_cultures\n")
-                f.write("clabsi,Staphylococcus aureus,4,true,1800,1\n")
-                f.write("clabsi,Escherichia coli,5,true,200,1\n")
-                f.write("cauti,Candida albicans,6,true,,1\n")
+                f.write("surveillance_type,organism,device_days,fever,anc,anc_qualifying_days,num_cultures\n")
+                f.write("clabsi,Staphylococcus aureus,4,true,1800,0,1\n")
+                f.write("clabsi,Escherichia coli,5,true,200,2,1\n")
+                f.write("cauti,Candida albicans,6,true,,,1\n")
 
             count = process_batch_csv(in_csv, out_csv)
             self.assertEqual(count, 3)
