@@ -17,3 +17,8 @@ build/
 venv/
 ENV/
 
+
+# Local environment files
+.env
+.env.*
+!.env.example

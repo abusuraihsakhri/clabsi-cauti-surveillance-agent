@@ -31,6 +31,16 @@ class TestCLABSISurveillance(unittest.TestCase):
         self.assertEqual(res.lcbi_type, "LCBI-1")
         self.assertTrue(res.is_reportable_clabsi)
 
+    def test_unknown_organism_requires_terminology_review(self):
+        res = evaluate_clabsi(
+            organism_name="Example organism not in registry",
+            number_of_positive_blood_cultures=1,
+            central_line_days=5,
+        )
+        self.assertEqual(res.verdict, SurveillanceVerdict.INDETERMINATE)
+        self.assertFalse(res.is_reportable_clabsi)
+        self.assertIn("Terminology Browser", res.rule_out_rationale)
+
     def test_lcbi_1_pseudomonas_aeruginosa(self):
         res = evaluate_clabsi(
             organism_name="Pseudomonas aeruginosa",
@@ -60,7 +70,7 @@ class TestCLABSISurveillance(unittest.TestCase):
         )
         self.assertEqual(res.verdict, SurveillanceVerdict.CONTAMINANT_OR_COLONIZATION)
         self.assertFalse(res.is_reportable_clabsi)
-        self.assertIn("contaminant", res.rule_out_rationale.lower())
+        self.assertIn("does not meet", res.rule_out_rationale.lower())
 
     def test_lcbi_2_two_commensal_bottles_no_symptoms_rule_out(self):
         res = evaluate_clabsi(
@@ -128,11 +138,23 @@ class TestMBILCBIAndSecondaryBSI(unittest.TestCase):
             number_of_positive_blood_cultures=1,
             central_line_days=5,
             absolute_neutrophil_count_anc=250.0,  # < 500/mm³
+            neutropenia_qualifying_days=2,
             fever_gt_38c=True,
         )
         self.assertEqual(res.verdict, SurveillanceVerdict.MBI_LCBI)
         self.assertEqual(res.lcbi_type, "MBI-LCBI-1")
         self.assertFalse(res.is_reportable_clabsi)  # Stratified separately
+
+    def test_single_low_anc_day_does_not_meet_mbi_host_factor(self):
+        res = evaluate_clabsi(
+            organism_name="Escherichia coli",
+            number_of_positive_blood_cultures=1,
+            central_line_days=5,
+            absolute_neutrophil_count_anc=250.0,
+            neutropenia_qualifying_days=1,
+        )
+        self.assertEqual(res.verdict, SurveillanceVerdict.CONFIRMED_CLABSI)
+        self.assertEqual(res.lcbi_type, "LCBI-1")
 
     def test_mbi_lcbi_1_hsct_gi_gvhd_enterococcus(self):
         res = evaluate_clabsi(
@@ -151,6 +173,19 @@ class TestMBILCBIAndSecondaryBSI(unittest.TestCase):
             central_line_days=5,
             fever_gt_38c=True,
             absolute_neutrophil_count_anc=100.0,
+            neutropenia_qualifying_days=2,
+        )
+        self.assertEqual(res.verdict, SurveillanceVerdict.MBI_LCBI)
+        self.assertEqual(res.lcbi_type, "MBI-LCBI-2")
+
+    def test_mbi_lcbi_2_rothia_neutropenia(self):
+        res = evaluate_clabsi(
+            organism_name="Rothia mucilaginosa",
+            number_of_positive_blood_cultures=2,
+            central_line_days=5,
+            fever_gt_38c=True,
+            absolute_neutrophil_count_anc=100.0,
+            neutropenia_qualifying_days=2,
         )
         self.assertEqual(res.verdict, SurveillanceVerdict.MBI_LCBI)
         self.assertEqual(res.lcbi_type, "MBI-LCBI-2")
@@ -240,6 +275,28 @@ class TestCAUTISurveillance(unittest.TestCase):
         self.assertEqual(res.verdict, SurveillanceVerdict.CONTAMINANT_OR_COLONIZATION)
         self.assertFalse(res.is_reportable_cauti)
 
+    def test_urinary_symptoms_do_not_count_while_iuc_in_place(self):
+        res = evaluate_cauti(
+            organism_name="Escherichia coli",
+            colony_count_cfu_ml=100000.0,
+            number_of_organism_species_in_culture=1,
+            catheter_days=4,
+            urgency_frequency_dysuria=True,
+            urinary_symptoms_occurred_without_iuc=False,
+        )
+        self.assertEqual(res.verdict, SurveillanceVerdict.CONTAMINANT_OR_COLONIZATION)
+
+    def test_urinary_symptoms_can_count_when_documented_without_iuc(self):
+        res = evaluate_cauti(
+            organism_name="Escherichia coli",
+            colony_count_cfu_ml=100000.0,
+            number_of_organism_species_in_culture=1,
+            catheter_days=4,
+            urgency_frequency_dysuria=True,
+            urinary_symptoms_occurred_without_iuc=True,
+        )
+        self.assertEqual(res.verdict, SurveillanceVerdict.CONFIRMED_CAUTI)
+
     def test_asymptomatic_bacteremic_uti_abuti(self):
         res = evaluate_cauti(
             organism_name="Enterococcus faecalis",
@@ -280,7 +337,7 @@ class TestEpidemiologicalMetrics(unittest.TestCase):
         self.assertAlmostEqual(metrics.sir, 0.952, places=2)
         self.assertEqual(metrics.device_utilization_ratio, 0.400)
         self.assertEqual(metrics.infection_rate_per_1000_device_days, 4.0)
-        self.assertIn("CONCORDANT", metrics.sir_interpretation)
+        self.assertIn("NOT STATISTICALLY DIFFERENT", metrics.sir_interpretation)
 
     def test_sir_statistically_elevated(self):
         metrics = calculate_sir_and_dur(
@@ -323,7 +380,7 @@ class TestBatchProcessingAndEngine(unittest.TestCase):
         )
         self.assertLess(metrics.sir, 1.0)
         self.assertLess(metrics.sir_confidence_interval_95[1], 1.0)
-        self.assertIn("STATISTICALLY SUPERIOR", metrics.sir_interpretation)
+        self.assertIn("STATISTICALLY LOWER", metrics.sir_interpretation)
 
     def test_clabsi_serratia_marcescens(self):
         res = evaluate_clabsi(
@@ -353,24 +410,50 @@ class TestBatchProcessingAndEngine(unittest.TestCase):
             number_of_positive_blood_cultures=1,
             central_line_days=4,
         )
+        self.assertEqual(clabsi_res.verdict, SurveillanceVerdict.CONFIRMED_CLABSI)
+
+        cauti_res = engine.evaluate_cauti_case(
+            organism_name="Escherichia coli",
+            colony_count_cfu_ml=100000.0,
+            number_of_organism_species_in_culture=1,
+            catheter_days=4,
+            fever_gt_38c=True,
+        )
+        self.assertEqual(cauti_res.verdict, SurveillanceVerdict.CONFIRMED_CAUTI)
+
+    def test_batch_parses_false_boolean_strings(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            in_csv = os.path.join(tmpdir, "bool_input.csv")
+            out_csv = os.path.join(tmpdir, "bool_output.csv")
+            with open(in_csv, "w", encoding="utf-8") as f:
+                f.write("surveillance_type,organism,device_days,fever,num_cultures\n")
+                f.write("clabsi,Staphylococcus epidermidis,5,false,2\n")
+            process_batch_csv(in_csv, out_csv)
+            with open(out_csv, "r", encoding="utf-8") as f:
+                row = next(__import__("csv").DictReader(f))
+            self.assertEqual(row["verdict"], "contaminant_or_colonization")
+
     def test_batch_csv_surveillance(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             in_csv = os.path.join(tmpdir, "surv_input.csv")
             out_csv = os.path.join(tmpdir, "surv_output.csv")
 
             with open(in_csv, "w", encoding="utf-8") as f:
-                f.write("surveillance_type,organism,device_days,fever,anc,num_cultures\n")
-                f.write("clabsi,Staphylococcus aureus,4,true,1800,1\n")
-                f.write("clabsi,Escherichia coli,5,true,200,1\n")
-                f.write("cauti,Candida albicans,6,true,,1\n")
+                f.write("surveillance_type,organism,device_days,fever,anc,anc_qualifying_days,num_cultures\n")
+                f.write("clabsi,Staphylococcus aureus,4,true,1800,0,1\n")
+                f.write("clabsi,Escherichia coli,5,true,200,2,1\n")
+                f.write("cauti,Candida albicans,6,true,,,1\n")
 
             count = process_batch_csv(in_csv, out_csv)
             self.assertEqual(count, 3)
             self.assertTrue(os.path.exists(out_csv))
 
             with open(out_csv, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-                self.assertEqual(len(lines), 4)
+                rows = list(__import__("csv").DictReader(f))
+                self.assertEqual(len(rows), 3)
+                self.assertEqual(rows[0]["verdict"], "confirmed_clabsi")
+                self.assertEqual(rows[1]["verdict"], "mbi_lcbi")
+                self.assertEqual(rows[2]["verdict"], "contaminant_or_colonization")
 
 
 if __name__ == "__main__":

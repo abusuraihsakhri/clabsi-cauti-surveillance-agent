@@ -1,7 +1,7 @@
 """
-Clinical Data Models & Enums for DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter.
+Legacy threshold-compatibility data models.
 Domain: Infection Control
-Standard: CDC NHSN Surveillance Guidelines
+This module is not the canonical NHSN surveillance implementation.
 """
 import datetime
 from dataclasses import dataclass, field

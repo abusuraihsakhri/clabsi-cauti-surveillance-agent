@@ -1,27 +1,40 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=70"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "clabsi-cauti-surveillance-engine"
-version = "2.0.0"
-description = "DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter"
+name = "clabsi-cauti-surveillance-agent"
+version = "2.1.0"
+description = "Command-line and browser utilities for selected CDC NHSN CLABSI and CAUTI surveillance criteria"
 readme = "README.md"
-authors = [{ name = "Dr. Abu Suraih Sakhri", email = "abusuraih@example.com" }]
+authors = [{ name = "NAME" }]
 license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = []
 
+[project.optional-dependencies]
+server = ["fastapi>=0.115,<1", "uvicorn>=0.32,<1"]
+
 [project.scripts]
-clabsi-cauti-surveillance-engine = "clabsi_cauti_surveillance_agent.cli:main"
+clabsi-cauti-surveillance-agent = "clabsi_cauti_surveillance_agent.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/abusuraihsakhri/clabsi-cauti-surveillance-engine"
-Repository = "https://github.com/abusuraihsakhri/clabsi-cauti-surveillance-engine.git"
+Homepage = "https://github.com/abusuraihsakhri/clabsi-cauti-surveillance-agent"
+Repository = "https://github.com/abusuraihsakhri/clabsi-cauti-surveillance-agent.git"
+
+[tool.setuptools]
+packages = ["clabsi_cauti_surveillance_agent"]
+py-modules = [
+    "clabsi_cauti_surveillance",
+    "cli",
+    "device_hai_sentinel",
+    "device_hai_sentinel_app",
+    "clabsi_cauti_surveillance_agent_app",
+    "enrichment",
+]

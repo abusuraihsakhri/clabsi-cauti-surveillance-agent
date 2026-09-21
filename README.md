@@ -1,218 +1,161 @@
-# CLABSI & CAUTI Autonomous Surveillance Engine (DeviceHAI Sentinel)
+# CLABSI & CAUTI Surveillance Utilities
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python: 3.10 | 3.11 | 3.12](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Surveillance Standard: CDC NHSN](https://img.shields.io/badge/Surveillance%20Standard-CDC%20NHSN%20Guidelines-red.svg)](https://www.cdc.gov/nhsn/psc/index.html)
-[![Clinical Standard: CLSI M100 / EUCAST](https://img.shields.io/badge/Clinical%20Standard-CLSI%20M100%20%7C%20EUCAST-darkgreen.svg)](https://clsi.org/)
+Browser and command-line utilities for screening selected **2026 CDC National Healthcare Safety Network (NHSN)** CLABSI, CAUTI, MBI-LCBI, and device-associated infection metrics.
 
-An autonomous, deterministic clinical epidemiology and healthcare-associated infection (HAI) arbitration engine implementing official **CDC NHSN (National Healthcare Safety Network)** surveillance algorithms. DeviceHAI Sentinel eliminates subjective clinician variation by objectively adjudicating Central Line-Associated Bloodstream Infections (**CLABSI**), Catheter-Associated Urinary Tract Infections (**CAUTI**), Mucosal Barrier Injury Laboratory-Confirmed Bloodstream Infections (**MBI-LCBI**), and Secondary Bloodstream Infection (BSI) attributions while computing risk-adjusted Standardized Infection Ratios (**SIR**) and Device Utilization Ratios (**DUR**).
+The project is intended for surveillance workflow support, testing, and education. It is **not** a complete implementation of every NHSN rule, the NHSN Terminology Browser, or facility-specific reporting policy, and it does not replace infection-prevention review.
 
----
+## What it includes
 
-## 1. Clinical Epidemiology & Surveillance Standards
+- CLABSI screening for selected LCBI-1, LCBI-2, and LCBI-3 elements.
+- Selected MBI-LCBI host-factor handling, including the 2026 requirement for at least two qualifying ANC/WBC days in the seven-day window.
+- Secondary BSI attribution input for a documented matching primary site.
+- CAUTI SUTI-1a and catheter-associated ABUTI screening.
+- Correct handling of urgency/frequency/dysuria timing: these symptoms are only eligible when documented while the indwelling urinary catheter is not in place.
+- SIR, approximate 95% SIR interval, device-utilization ratio, and infection rate per 1,000 device-days.
+- CSV batch processing.
+- A compact browser UI that runs the Python surveillance module client-side with Pyodide.
+- Optional FastAPI endpoints for local/server use.
 
-Hospital-acquired device-associated infections represent a substantial source of preventable morbidity, mortality, and financial penalty under CMS Hospital-Acquired Condition Reduction Programs (HACRP). This engine automates surveillance according to the following guidelines:
+## Browser application
 
-### Central Line-Associated Bloodstream Infection (CLABSI / BSI)
-* **Device Eligibility:** Eligible Central Vascular Catheters (CVC, PICC, tunneled/non-tunneled lines, hemodialysis catheters, umbilical catheters). Midline catheters and peripheral IV lines are **strictly excluded**.
-* **Dwell Time Requirement:** Central line in place for **> 2 consecutive calendar days** (where Day 1 is the calendar day of device placement) and still present on the Infection Window Period / Date of Event (DOE) or removed on the day prior.
-* **Criterion LCBI-1 (Recognized Pathogen):** Recognized pathogen (e.g., *Staphylococcus aureus*, *Enterococcus faecalis*, *Pseudomonas aeruginosa*, *Escherichia coli*, *Klebsiella pneumoniae*, *Candida* spp.) cultured from >= 1 blood specimens, not related to an infection at another site.
-* **Criterion LCBI-2 (Common Commensal):** Organism considered normal skin flora (e.g., Coagulase-negative Staphylococci / *S. epidermidis*, *Corynebacterium* spp., *Cutibacterium acnes*, *Bacillus* spp., viridans group *Streptococci*) isolated from >= 2 blood cultures drawn on separate occasions within the Infection Window Period, accompanied by at least one systemic sign:
-  * Fever (> 38.0 C), chills, or hypotension (SBP < 90 mmHg) in patients > 1 year.
-  * Hypothermia (< 36.0 C), apnea, or bradycardia in infants <= 1 year.
-* **Mucosal Barrier Injury (MBI-LCBI):** Patients with severe neutropenia (Absolute Neutrophil Count ANC <= 500 cells/mm3) or allogeneic Hematopoietic Stem Cell Transplant (HSCT) with gastrointestinal Graft-versus-Host Disease (GI-GVHD) isolating designated enterococci, Enterobacteriaceae, viridans streptococci, or *Candida*. MBI-LCBI cases are tracked separately and excluded from public reporting hospital-wide CLABSI denominators.
-* **Secondary BSI Attribution:** Positive blood culture meeting NHSN Secondary BSI attribution rules when matched with an established primary source (e.g., CAUTI, pneumonia, surgical site infection).
+The GitHub Pages interface uses the same `clabsi_cauti_surveillance.py` module as the command-line workflow. Python runs in the browser through a pinned Pyodide runtime.
 
-### Catheter-Associated Urinary Tract Infection (CAUTI / SUTI / ABUTI)
-* **Device Eligibility:** Indwelling urethral Foley or suprapubic catheter in place for **> 2 consecutive calendar days** and present on DOE or removed the calendar day prior. Condom catheters, external female collection pouches, straight in-and-out catheterizations, and nephrostomy tubes are **excluded**.
-* **Symptomatic UTI (SUTI-1a):**
-  * Catheter dwell time > 2 calendar days.
-  * Quantitative urine culture yielding >= 10^5 CFU/mL of <= 2 species of microorganisms.
-  * At least one clinical symptom: fever (> 38.0 C), suprapubic tenderness, costovertebral angle (CVA) pain/tenderness, or dysuria/urgency/frequency.
-* **Fungal Exclusion Rule:** Per CDC NHSN revisions, *Candida* species, yeasts, and molds isolated from urine are **strictly excluded** from CAUTI reporting (classified as colonization/contaminant).
-* **Asymptomatic Bacteremic UTI (ABUTI):** Patient without urinary symptoms who has an indwelling catheter > 2 days, urine culture >= 10^5 CFU/mL, and a concurrent positive blood culture matching the identical urinary microorganism.
+Form values are processed locally by the application and are not sent to an application backend. The browser must fetch Pyodide from jsDelivr when the runtime loads, so normal browser/network metadata may still be visible to that CDN. Do not enter protected health information into public/shared devices or workflows without appropriate institutional controls.
 
----
+A verified live application link will be placed here after the Pages deployment is confirmed.
 
-## 2. Epidemiological Benchmark Formulations
+## Installation
 
-```
-+-------------------------------------------------------------------------------+
-|                       CDC NHSN SURVEILLANCE FORMULAS                         |
-+-------------------------------------------------------------------------------+
-|                                                                               |
-|  1. Standardized Infection Ratio (SIR):                                       |
-|                                                                               |
-|            Observed HAI Events (O)                                            |
-|     SIR = -------------------------                                           |
-|            Predicted HAI Events (E)                                           |
-|                                                                               |
-|  2. Poisson Exact 95% Confidence Interval (Byar's Approximation):             |
-|                                                                               |
-|                 [                                     1.96  ]3                |
-|     O_lower = O * [ 1 - (1 / (9 * O)) - -------------------- ]                |
-|                 [                        3 * sqrt(O)         ]                |
-|                                                                               |
-|                     [                                         1.96  ]3        |
-|     O_upper = (O+1) * [ 1 - (1 / (9 * (O + 1))) + -------------------- ]      |
-|                     [                              3 * sqrt(O + 1)   ]        |
-|                                                                               |
-|     SIR_95_CI = [ O_lower / E ,  O_upper / E ]                                |
-|                                                                               |
-|  3. Device Utilization Ratio (DUR):                                           |
-|                                                                               |
-|            Device Days (Central Line Days or Foley Catheter Days)             |
-|     DUR = --------------------------------------------------------            |
-|                           Patient Inpatient Days                              |
-|                                                                               |
-|  4. Device-Associated Infection Rate:                                         |
-|                                                                               |
-|                      Observed HAI Events                                      |
-|     Rate per 1,000 = --------------------- * 1,000                            |
-|                           Device Days                                         |
-|                                                                               |
-+-------------------------------------------------------------------------------+
-```
+Requires Python 3.10 or later.
 
----
-
-## 3. NHSN Case Classification Matrix
-
-```
-+------------------+-------------------+----------------+---------------------+-------------------+
-| Clinical Feature | Recognized Path.  | Skin Commensal | Neutropenic (MBI)   | Secondary Source  |
-+------------------+-------------------+----------------+---------------------+-------------------+
-| Blood Cultures   | >= 1 positive     | >= 2 positive  | >= 1 MBI pathogen   | Matched organism  |
-| Central Line     | > 2 calendar days | > 2 cal. days  | > 2 cal. days       | Any dwell time    |
-| Systemic Signs   | Not required      | Fever/Chills/BP| Fever / ANC <= 500  | Primary site signs|
-| Secondary Site   | None (primary)    | None (primary) | GI tract mucosal    | Positive site cul.|
-| Final Verdict    | CONFIRMED_CLABSI  | CONFIRMED_CLAB | MBI_LCBI            | SECONDARY_BSI     |
-| Classification   | LCBI-1            | LCBI-2         | MBI-LCBI-1 / 2      | Secondary BSI     |
-| Public Reportable| YES (NHSN SIR)    | YES (NHSN SIR) | NO (CMS exempt)     | NO (BSI excluded) |
-+------------------+-------------------+----------------+---------------------+-------------------+
-```
-
-```
-+------------------+--------------------+---------------------+--------------------+--------------------+
-| CAUTI Feature    | Bacterial SUTI-1a  | Fungal (Candida)    | Low Colony Count   | ABUTI              |
-+------------------+--------------------+---------------------+--------------------+--------------------+
-| Catheter Dwell   | > 2 calendar days  | > 2 calendar days   | > 2 calendar days  | > 2 calendar days  |
-| Organism Isolated| E. coli, Klebsiella| Candida albicans/spp| Any pathogen       | Matching blood/urin|
-| Quantitative CFU | >= 10^5 CFU/mL     | >= 10^5 CFU/mL      | < 10^5 CFU/mL      | >= 10^5 CFU/mL     |
-| Clinical Signs   | Fever / CVA / Pain | Any symptoms        | Any symptoms       | Asymptomatic       |
-| Final Verdict    | CONFIRMED_CAUTI    | CONTAMINANT/EXCLUDE | CONTAMINANT        | ABUTI              |
-| Classification   | SUTI-1a            | Colonization        | Below threshold    | ABUTI              |
-| Public Reportable| YES (NHSN SIR)     | NO (NHSN Excluded)  | NO                 | YES (Reportable)   |
-+------------------+--------------------+---------------------+--------------------+--------------------+
-```
-
----
-
-## 4. CLI Quickstart & Subcommands
-
-The CLI entry point `cli.py` provides full support for single case evaluations, epidemiological calculations, and batch CSV processing.
-
-### CLABSI Evaluation
 ```bash
-# LCBI-1: Single bottle S. aureus with central line > 2 days
-python cli.py clabsi --organism "Staphylococcus aureus" --cultures 1 --days 5 --fever
-
-# LCBI-2: Common commensal (S. epidermidis) requiring 2 positive culture bottles
-python cli.py clabsi --organism "Staphylococcus epidermidis" --cultures 2 --days 4 --fever
-
-# MBI-LCBI: Gram-negative bacteremia in neutropenic patient (ANC <= 500)
-python cli.py clabsi --organism "Escherichia coli" --cultures 1 --days 6 --anc 300
-
-# JSON Output formatting
-python cli.py --json clabsi --organism "Klebsiella pneumoniae" --cultures 1 --days 4 --fever
+git clone https://github.com/abusuraihsakhri/clabsi-cauti-surveillance-agent.git
+cd clabsi-cauti-surveillance-agent
+python -m pip install -e .
 ```
 
-### CAUTI Evaluation
+For the optional FastAPI service:
+
 ```bash
-# Confirmed SUTI-1a with E. coli >= 10^5 CFU/mL and fever
-python cli.py cauti --organism "Escherichia coli" --cfu 100000 --days 4 --fever
-
-# Candida rule-out: Strictly excluded under NHSN criteria
-python cli.py cauti --organism "Candida albicans" --cfu 100000 --days 5 --fever
-
-# Asymptomatic Bacteremic UTI (ABUTI)
-python cli.py cauti --organism "Proteus mirabilis" --cfu 150000 --days 5 --blood-match
+python -m pip install -e ".[server]"
+clabsi-cauti-surveillance-agent serve
 ```
 
-### Epidemiological SIR & DUR Metrics
+## Command-line examples
+
+CLABSI:
+
 ```bash
-# Compute facility SIR with exact Poisson 95% CI and Device Utilization Ratio
-python cli.py metrics --observed 4 --predicted 5.2 --device-days 1200 --patient-days 3500
+clabsi-cauti-surveillance-agent clabsi \
+  --organism "Staphylococcus aureus" \
+  --cultures 1 \
+  --days 5 \
+  --fever
 ```
 
-### Batch Surveillance Processing
-Process inpatient surveillance records from an input CSV file and output standardized arbitration verdicts:
-```bash
-# Batch process sample records
-python cli.py batch -i sample.csv -o results.csv
+MBI host-factor screening with two qualifying low-count days:
 
-# Long flag syntax
-python cli.py batch --input sample.csv --output results.csv
+```bash
+clabsi-cauti-surveillance-agent clabsi \
+  --organism "Escherichia coli" \
+  --cultures 1 \
+  --days 6 \
+  --anc 300 \
+  --anc-days 2
 ```
 
-### Interactive Wizard
+CAUTI:
+
 ```bash
-python cli.py interactive
+clabsi-cauti-surveillance-agent cauti \
+  --organism "Escherichia coli" \
+  --cfu 100000 \
+  --days 4 \
+  --fever
 ```
 
----
+If urgency, frequency, or dysuria is used, explicitly confirm that the symptom occurred while the IUC was absent:
 
-## 5. Input Data Schema (`sample.csv`)
-
-| Field | Type | Description | Example |
-|:------|:-----|:------------|:--------|
-| `case_id` | String | Unique surveillance record identifier | `CASE-001` |
-| `patient_id` | String | De-identified patient token | `PT-5120` |
-| `surveillance_type` | String | Surveillance protocol (`clabsi` or `cauti`) | `clabsi` |
-| `organism` | String | Isolated microorganism taxon | `Staphylococcus aureus` |
-| `device_days` | Integer | Consecutive calendar days catheter/line in place | `4` |
-| `fever` | Boolean | Body temperature > 38.0 C | `true` |
-| `hypotension` | Boolean | Systolic blood pressure < 90 mmHg | `false` |
-| `anc` | Float | Absolute neutrophil count in cells/mm3 | `2100` |
-| `num_cultures` | Integer | Count of positive blood culture bottles | `1` |
-| `colony_count` | Float | Quantitative urine bacterial colony count in CFU/mL | `150000` |
-| `num_species` | Integer | Microorganism species count in urine culture | `1` |
-| `secondary_site` | String | Documented primary site matching organism | `Urine (CAUTI)` |
-
----
-
-## 6. Output Schema (`results.csv`)
-
-The engine appends adjudicated surveillance findings to each input record:
-
-| Output Field | Description | Possible Values |
-|:-------------|:------------|:----------------|
-| `verdict` | Final NHSN surveillance adjudication | `confirmed_clabsi`, `confirmed_cauti`, `mbi_lcbi`, `secondary_bsi`, `contaminant_or_colonization`, `device_days_insufficient`, `no_infection_event` |
-| `classification_type` | Specific NHSN case definition code | `LCBI-1`, `LCBI-2`, `LCBI-3`, `MBI-LCBI-1`, `SUTI-1a`, `ABUTI`, `Secondary BSI`, `None` |
-| `lcbi_type` | CLABSI-specific classification | `LCBI-1`, `LCBI-2`, `LCBI-3`, `MBI-LCBI-1`, `Secondary BSI` |
-| `cauti_type` | CAUTI-specific classification | `SUTI-1a`, `ABUTI`, `None` |
-| `is_reportable` | Whether event is reportable in NHSN public SIR | `True` / `False` |
-| `rule_out_reason` | Clinical justification and guideline citation | Detailed clinical explanation |
-
----
-
-## 7. Verification & CI/CD
-
-Run test suite:
 ```bash
-python -m pytest -p no:zarr -v
+clabsi-cauti-surveillance-agent cauti \
+  --organism "Escherichia coli" \
+  --cfu 100000 \
+  --days 4 \
+  --dysuria \
+  --urinary-symptoms-without-iuc
 ```
 
-Execute CLI batch smoke test:
+SIR/DUR metrics:
+
 ```bash
+clabsi-cauti-surveillance-agent metrics \
+  --observed 4 \
+  --predicted 5.2 \
+  --device-days 1200 \
+  --patient-days 3500
+```
+
+Batch processing:
+
+```bash
+clabsi-cauti-surveillance-agent batch -i sample.csv -o surveillance_results.csv
+```
+
+The batch reader supports the core fields demonstrated in `sample.csv`, including `anc_qualifying_days`, CAUTI symptom fields, matching blood culture, and secondary-site attribution.
+
+## Python API
+
+```python
+from clabsi_cauti_surveillance import evaluate_clabsi
+
+result = evaluate_clabsi(
+    organism_name="Staphylococcus aureus",
+    number_of_positive_blood_cultures=1,
+    central_line_days=4,
+)
+
+print(result.verdict.value)
+```
+
+## Validation
+
+Run the test suite and CLI smoke tests:
+
+```bash
+python -m pytest -p no:zarr -q
+clabsi-cauti-surveillance-agent clabsi --organism "Staphylococcus aureus" --cultures 1 --days 4
 python cli.py batch -i sample.csv -o out_smoke.csv
 ```
 
-All 36 unit tests validate complete coverage of:
-1. NHSN LCBI-1, LCBI-2, and LCBI-3 clinical criteria.
-2. Mucosal Barrier Injury (MBI-LCBI) oncology/neutropenia exemptions.
-3. Secondary BSI attribution matrices (Urine, Pneumonia, SSI).
-4. Indwelling urinary catheter SUTI-1a and ABUTI definitions.
-5. Strict exclusion of *Candida* and fungal urinary isolates.
-6. Exact Poisson 95% confidence intervals and SIR interpretations.
-7. Batch CSV intake and automated surveillance reporting.
+GitHub Actions also compiles the source, installs the package, runs the tests on supported Python versions, exercises the installed console entry point, checks the batch workflow, and validates the static Pages inputs.
+
+## Clinical scope and limitations
+
+The core engine intentionally implements a bounded set of criteria rather than claiming full NHSN conformance. In particular:
+
+- The local organism registry is a convenience subset and does not replace the current NHSN Terminology Browser. Unlisted CLABSI organisms return an indeterminate terminology-review result rather than being assumed to be recognized pathogens.
+- The caller is responsible for establishing Infection Window Period, Repeat Infection Timeframe, present-on-admission/healthcare-associated timing, location attribution, and other criteria not represented by the function arguments.
+- The HSCT MBI flag is caller-verified; the code does not reconstruct transplant timing or GI-GVHD/diarrhea documentation.
+- Secondary BSI attribution is represented as an explicit input rather than a complete site-specific attribution engine.
+- SIR confidence bounds use a Byar approximation for non-zero observed counts. Use official NHSN analytic outputs for regulatory reporting.
+- Output fields and follow-up notes are surveillance aids, not treatment recommendations.
+
+For current definitions, use the official CDC NHSN Patient Safety Component manuals and checklists:
+
+- [Bloodstream Infection (BSI) Event](https://www.cdc.gov/nhsn/pdfs/pscmanual/4psc_clabscurrent.pdf)
+- [Urinary Tract Infection (UTI) Event](https://www.cdc.gov/nhsn/pdfs/pscmanual/7psccauticurrent.pdf)
+- [NHSN Patient Safety Component](https://www.cdc.gov/nhsn/psc/index.html)
+
+## Technology
+
+- Python standard library for the core surveillance engine.
+- Pyodide 314.0.7 for browser-side Python execution.
+- HTML/CSS/JavaScript for the static interface.
+- Optional FastAPI and Uvicorn for local API service.
+- GitHub Actions for tests and GitHub Pages deployment.
+
+The browser interface targets current Chromium, Firefox, and Safari releases with WebAssembly support. JavaScript must be enabled.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

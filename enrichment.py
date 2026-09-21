@@ -1,6 +1,8 @@
 """
-Enrichment Feature Implementation for clabsi-cauti-surveillance-agent.
-Generated based on domain-specific requirements in specifications.
+Legacy generic threshold examples retained for backward compatibility.
+
+These classes do not implement CDC NHSN case definitions and are not used by
+the canonical CLABSI/CAUTI surveillance engine or browser application.
 """
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional, Tuple
@@ -39,13 +41,13 @@ class EnrichmentIdeasImplementationPlansEngine:
         if primary_value > self.threshold * 2:
             status = "CRITICAL_ALERT"
             alerts.append(f"Enrichment Ideas & Implementation Plans: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
+            recs.append("Review the configured demonstration threshold and input data.")
         elif primary_value > self.threshold:
             status = "WARNING"
             alerts.append(f"Enrichment Ideas & Implementation Plans: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
+            recs.append("Review the configured demonstration threshold and input data.")
         else:
-            recs.append("Parameters nominal under standard operating bounds.")
+            recs.append("Value is within the configured demonstration threshold.")
 
         res = EnrichmentIdeasImplementationPlansEngineResult(
             feature_name="Enrichment Ideas & Implementation Plans",
@@ -89,13 +91,13 @@ class RealtimeDevicedayDenominatorDashboardEngine:
         if primary_value > self.threshold * 2:
             status = "CRITICAL_ALERT"
             alerts.append(f"Real-Time Device-Day Denominator Dashboard: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
+            recs.append("Review the configured demonstration threshold and input data.")
         elif primary_value > self.threshold:
             status = "WARNING"
             alerts.append(f"Real-Time Device-Day Denominator Dashboard: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
+            recs.append("Review the configured demonstration threshold and input data.")
         else:
-            recs.append("Parameters nominal under standard operating bounds.")
+            recs.append("Value is within the configured demonstration threshold.")
 
         res = RealtimeDevicedayDenominatorDashboardEngineResult(
             feature_name="Real-Time Device-Day Denominator Dashboard",
@@ -139,13 +141,13 @@ class AutomatedBundleComplianceMonitorEngine:
         if primary_value > self.threshold * 2:
             status = "CRITICAL_ALERT"
             alerts.append(f"Automated Bundle Compliance Monitor: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
+            recs.append("Review the configured demonstration threshold and input data.")
         elif primary_value > self.threshold:
             status = "WARNING"
             alerts.append(f"Automated Bundle Compliance Monitor: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
+            recs.append("Review the configured demonstration threshold and input data.")
         else:
-            recs.append("Parameters nominal under standard operating bounds.")
+            recs.append("Value is within the configured demonstration threshold.")
 
         res = AutomatedBundleComplianceMonitorEngineResult(
             feature_name="Automated Bundle Compliance Monitor",
@@ -189,13 +191,13 @@ class InfectionOutbreakEarlyDetectionEngine:
         if primary_value > self.threshold * 2:
             status = "CRITICAL_ALERT"
             alerts.append(f"Infection Outbreak Early Detection: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
+            recs.append("Review the configured demonstration threshold and input data.")
         elif primary_value > self.threshold:
             status = "WARNING"
             alerts.append(f"Infection Outbreak Early Detection: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
+            recs.append("Review the configured demonstration threshold and input data.")
         else:
-            recs.append("Parameters nominal under standard operating bounds.")
+            recs.append("Value is within the configured demonstration threshold.")
 
         res = InfectionOutbreakEarlyDetectionEngineResult(
             feature_name="Infection Outbreak Early Detection",
@@ -239,13 +241,13 @@ class MultifacilityNhsnBenchmarkingAggregatorEngine:
         if primary_value > self.threshold * 2:
             status = "CRITICAL_ALERT"
             alerts.append(f"Multi-Facility NHSN Benchmarking Aggregator: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
+            recs.append("Review the configured demonstration threshold and input data.")
         elif primary_value > self.threshold:
             status = "WARNING"
             alerts.append(f"Multi-Facility NHSN Benchmarking Aggregator: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
+            recs.append("Review the configured demonstration threshold and input data.")
         else:
-            recs.append("Parameters nominal under standard operating bounds.")
+            recs.append("Value is within the configured demonstration threshold.")
 
         res = MultifacilityNhsnBenchmarkingAggregatorEngineResult(
             feature_name="Multi-Facility NHSN Benchmarking Aggregator",
@@ -289,13 +291,13 @@ class PredictiveDeviceremovalAdvisorEngine:
         if primary_value > self.threshold * 2:
             status = "CRITICAL_ALERT"
             alerts.append(f"Predictive Device-Removal Advisor: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
+            recs.append("Review the configured demonstration threshold and input data.")
         elif primary_value > self.threshold:
             status = "WARNING"
             alerts.append(f"Predictive Device-Removal Advisor: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
+            recs.append("Review the configured demonstration threshold and input data.")
         else:
-            recs.append("Parameters nominal under standard operating bounds.")
+            recs.append("Value is within the configured demonstration threshold.")
 
         res = PredictiveDeviceremovalAdvisorEngineResult(
             feature_name="Predictive Device-Removal Advisor",
@@ -339,13 +341,13 @@ class AntibioticStewardshipIntegrationEngine:
         if primary_value > self.threshold * 2:
             status = "CRITICAL_ALERT"
             alerts.append(f"Antibiotic Stewardship Integration: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
+            recs.append("Review the configured demonstration threshold and input data.")
         elif primary_value > self.threshold:
             status = "WARNING"
             alerts.append(f"Antibiotic Stewardship Integration: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
+            recs.append("Review the configured demonstration threshold and input data.")
         else:
-            recs.append("Parameters nominal under standard operating bounds.")
+            recs.append("Value is within the configured demonstration threshold.")
 
         res = AntibioticStewardshipIntegrationEngineResult(
             feature_name="Antibiotic Stewardship Integration",
@@ -389,13 +391,13 @@ class TamperevidentSurveillanceAuditTrailEngine:
         if primary_value > self.threshold * 2:
             status = "CRITICAL_ALERT"
             alerts.append(f"Tamper-Evident Surveillance Audit Trail: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
+            recs.append("Review the configured demonstration threshold and input data.")
         elif primary_value > self.threshold:
             status = "WARNING"
             alerts.append(f"Tamper-Evident Surveillance Audit Trail: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
+            recs.append("Review the configured demonstration threshold and input data.")
         else:
-            recs.append("Parameters nominal under standard operating bounds.")
+            recs.append("Value is within the configured demonstration threshold.")
 
         res = TamperevidentSurveillanceAuditTrailEngineResult(
             feature_name="Tamper-Evident Surveillance Audit Trail",
@@ -412,7 +414,7 @@ class TamperevidentSurveillanceAuditTrailEngine:
 # COMPOSITE ENRICHMENT SUITE
 # =============================================================================
 class ClabsicautisurveillanceagentEnrichmentSuite:
-    """Master coordinator executing all enriched domain features."""
+    """Legacy coordinator executing generic threshold examples."""
     def __init__(self):
         self.enrichmentideasimple = EnrichmentIdeasImplementationPlansEngine()
         self.realtimedevicedayden = RealtimeDevicedayDenominatorDashboardEngine()

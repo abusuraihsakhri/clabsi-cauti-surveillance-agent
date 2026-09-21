@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Browser-based CLABSI and CAUTI surveillance screening utilities based on selected 2026 CDC NHSN criteria.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob:; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <title>CLABSI & CAUTI Surveillance</title>
+  <style>
+    :root {
+      --bg:#f5f7fb; --surface:#ffffff; --surface-2:#f8fafc; --text:#18212f;
+      --muted:#667085; --border:#dfe4ec; --accent:#3157d5; --accent-2:#2447b7;
+      --good:#157a55; --warn:#9a6700; --bad:#b42318; --shadow:0 12px 32px rgba(16,24,40,.08);
+      --radius:16px;
+    }
+    html[data-theme="dark"] {
+      --bg:#0e1117; --surface:#151a23; --surface-2:#11161e; --text:#eef2f6;
+      --muted:#9ba8ba; --border:#2a3341; --accent:#8aa4ff; --accent-2:#a8b9ff;
+      --good:#66d9a5; --warn:#f2c14e; --bad:#ff8a80; --shadow:0 14px 36px rgba(0,0,0,.28);
+    }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; background:var(--bg); color:var(--text); }
+    body { font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,input,select { font:inherit; }
+    button { cursor:pointer; }
+    .app {
+      min-height:100dvh; height:100dvh; display:grid; grid-template-rows:auto 1fr auto;
+      gap:12px; padding:16px; max-width:1240px; margin:0 auto;
+    }
+    header {
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+      padding:12px 14px; box-shadow:var(--shadow);
+    }
+    .brand { min-width:0; }
+    .brand h1 { margin:0; font-size:clamp(1.05rem,2.2vw,1.35rem); line-height:1.2; letter-spacing:-.02em; }
+    .brand p { margin:3px 0 0; color:var(--muted); font-size:.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .head-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+    .runtime {
+      display:flex; align-items:center; gap:7px; padding:7px 9px; border:1px solid var(--border);
+      border-radius:999px; color:var(--muted); font-size:.78rem; background:var(--surface-2);
+    }
+    .dot { width:8px; height:8px; border-radius:50%; background:var(--warn); }
+    .runtime.ready .dot { background:var(--good); }
+    .runtime.error .dot { background:var(--bad); }
+    .icon-btn {
+      border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+      width:36px; height:36px; border-radius:10px; display:grid; place-items:center;
+    }
+    .workspace {
+      min-height:0; display:grid; grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);
+      gap:12px;
+    }
+    .panel {
+      min-height:0; background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
+    }
+    .form-panel { display:grid; grid-template-rows:auto 1fr; }
+    .tabs {
+      display:flex; gap:6px; padding:10px; border-bottom:1px solid var(--border);
+      background:var(--surface-2);
+    }
+    .tab {
+      flex:1; border:1px solid transparent; color:var(--muted); background:transparent;
+      padding:8px 10px; border-radius:10px; font-weight:650; font-size:.86rem;
+    }
+    .tab[aria-selected="true"] {
+      background:var(--surface); border-color:var(--border); color:var(--text);
+      box-shadow:0 1px 2px rgba(16,24,40,.05);
+    }
+    .form-scroll { min-height:0; overflow:auto; }
+    form { display:none; height:100%; }
+    form.active { display:grid; grid-template-rows:1fr auto; }
+    .form-body { padding:12px; min-height:0; overflow:auto; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px 10px; }
+    .field { display:grid; gap:4px; min-width:0; }
+    .field.full { grid-column:1/-1; }
+    label { color:var(--muted); font-size:.76rem; font-weight:650; }
+    input,select {
+      width:100%; min-width:0; border:1px solid var(--border); border-radius:9px;
+      background:var(--surface-2); color:var(--text); padding:8px 9px; outline:none;
+    }
+    input:focus,select:focus,button:focus-visible,summary:focus-visible {
+      border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent);
+      outline:none;
+    }
+    .checks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 12px; }
+    .check { display:flex; gap:7px; align-items:flex-start; color:var(--text); font-size:.79rem; line-height:1.25; }
+    .check input { width:15px; height:15px; flex:0 0 auto; margin:1px 0 0; accent-color:var(--accent); }
+    details {
+      margin-top:10px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2);
+    }
+    summary { cursor:pointer; padding:8px 10px; color:var(--muted); font-size:.79rem; font-weight:700; }
+    details .advanced { padding:2px 10px 10px; }
+    .actions {
+      display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--border);
+      background:var(--surface-2);
+    }
+    .primary {
+      flex:1; border:0; background:var(--accent); color:white; border-radius:10px;
+      padding:9px 14px; font-weight:750;
+    }
+    html[data-theme="dark"] .primary { color:#0d1320; }
+    .primary:hover { background:var(--accent-2); }
+    .primary:disabled { opacity:.55; cursor:not-allowed; }
+    .secondary {
+      border:1px solid var(--border); background:var(--surface); color:var(--text);
+      border-radius:10px; padding:9px 12px; font-weight:650;
+    }
+    .result-panel { display:grid; grid-template-rows:auto 1fr; }
+    .result-head {
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      padding:11px 12px; border-bottom:1px solid var(--border); background:var(--surface-2);
+    }
+    .result-head h2 { margin:0; font-size:.92rem; }
+    .result-head span { color:var(--muted); font-size:.75rem; }
+    .result-content { min-height:0; overflow:auto; padding:12px; }
+    .empty {
+      height:100%; min-height:220px; display:grid; place-items:center; text-align:center; color:var(--muted);
+      padding:24px;
+    }
+    .empty strong { display:block; color:var(--text); margin-bottom:5px; }
+    .status-card {
+      border:1px solid var(--border); border-radius:12px; background:var(--surface-2);
+      padding:11px; margin-bottom:10px;
+    }
+    .status-card h3 { margin:0 0 4px; font-size:1rem; }
+    .status-card p { margin:0; color:var(--muted); font-size:.79rem; line-height:1.4; }
+    .kv { display:grid; grid-template-columns:minmax(120px,.9fr) 1.3fr; gap:6px 12px; font-size:.81rem; }
+    .kv div:nth-child(odd) { color:var(--muted); }
+    .section { margin-top:12px; }
+    .section h4 { margin:0 0 6px; font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+    .section ul { margin:0; padding-left:18px; font-size:.8rem; line-height:1.45; }
+    .section li+li { margin-top:3px; }
+    .mobile-close { display:none; }
+    footer {
+      color:var(--muted); font-size:.72rem; line-height:1.35; padding:0 4px;
+      display:flex; justify-content:space-between; gap:12px;
+    }
+    footer a { color:var(--accent); text-decoration:none; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    @media (max-width:820px) {
+      .app { padding:10px; gap:9px; }
+      .workspace { grid-template-columns:1fr; }
+      .result-panel {
+        position:fixed; inset:auto 8px 8px; height:min(72dvh,620px); z-index:20;
+        transform:translateY(calc(100% + 18px)); transition:transform .22s ease;
+        box-shadow:0 20px 60px rgba(0,0,0,.30);
+      }
+      body.has-result .result-panel { transform:translateY(0); }
+      .mobile-close { display:grid; }
+      footer { font-size:.68rem; }
+    }
+    @media (max-width:520px) {
+      .runtime span:last-child { display:none; }
+      .brand p { max-width:62vw; }
+      .grid { grid-template-columns:1fr 1fr; gap:7px; }
+      .field.full { grid-column:1/-1; }
+      .checks { grid-template-columns:1fr; }
+      input,select { padding:7px 8px; }
+      .form-body { padding:9px; }
+      .actions { padding:8px 9px; }
+      footer span:last-child { display:none; }
+    }
+    @media (max-height:700px) and (min-width:821px) {
+      .app { padding:10px; gap:8px; }
+      header { padding:8px 11px; }
+      .brand p { display:none; }
+      .tabs { padding:7px; }
+      .form-body,.result-content { padding:9px; }
+      .actions { padding:7px 9px; }
+      footer { display:none; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand">
+        <h1>CLABSI &amp; CAUTI Surveillance</h1>
+        <p>Selected 2026 CDC NHSN criteria · browser-local Python runtime</p>
+      </div>
+      <div class="head-actions">
+        <div id="runtime" class="runtime" role="status" aria-live="polite">
+          <span class="dot" aria-hidden="true"></span><span id="runtimeText">Loading Python…</span>
+        </div>
+        <button id="themeToggle" class="icon-btn" type="button" aria-label="Switch to dark theme" title="Toggle theme">◐</button>
+      </div>
+    </header>
+
+    <section class="workspace" aria-label="Surveillance calculator">
+      <div class="panel form-panel">
+        <nav class="tabs" aria-label="Calculator">
+          <button class="tab" type="button" data-tab="clabsi" aria-selected="true">CLABSI</button>
+          <button class="tab" type="button" data-tab="cauti" aria-selected="false">CAUTI</button>
+          <button class="tab" type="button" data-tab="metrics" aria-selected="false">SIR / DUR</button>
+        </nav>
+
+        <div class="form-scroll">
+          <form id="clabsiForm" class="active" data-mode="clabsi">
+            <div class="form-body">
+              <div class="grid">
+                <div class="field full"><label for="cl_org">Blood organism</label><input id="cl_org" name="organism_name" value="Staphylococcus aureus" required></div>
+                <div class="field"><label for="cl_cultures">Positive blood specimens</label><input id="cl_cultures" name="number_of_positive_blood_cultures" type="number" min="0" step="1" value="1" required></div>
+                <div class="field"><label for="cl_days">Central-line days</label><input id="cl_days" name="central_line_days" type="number" min="0" step="1" value="4" required></div>
+              </div>
+              <div class="checks" style="margin-top:9px">
+                <label class="check"><input name="fever_gt_38c" type="checkbox"><span>Fever &gt;38°C</span></label>
+                <label class="check"><input name="hypotension_sbp_lt_90" type="checkbox"><span>Hypotension</span></label>
+              </div>
+              <details>
+                <summary>Advanced criteria</summary>
+                <div class="advanced">
+                  <div class="grid">
+                    <div class="field"><label for="cl_age">Age (years)</label><input id="cl_age" name="patient_age_years" type="number" min="0" step="1" value="45"></div>
+                    <div class="field"><label for="cl_anc">ANC / WBC value</label><input id="cl_anc" name="absolute_neutrophil_count_anc" type="number" min="0" step="1" placeholder="Optional"></div>
+                    <div class="field"><label for="cl_ancdays">Days &lt;500 in 7-day window</label><input id="cl_ancdays" name="neutropenia_qualifying_days" type="number" min="0" max="7" step="1" value="0"></div>
+                    <div class="field"><label for="cl_secondary">Matching secondary site</label><input id="cl_secondary" name="primary_site_of_infection" placeholder="Optional"></div>
+                  </div>
+                  <div class="checks" style="margin-top:9px">
+                    <label class="check"><input name="chills_present" type="checkbox"><span>Chills</span></label>
+                    <label class="check"><input name="hypothermia_lt_36c" type="checkbox"><span>Hypothermia &lt;36°C</span></label>
+                    <label class="check"><input name="apnea_or_bradycardia" type="checkbox"><span>Apnea or bradycardia</span></label>
+                    <label class="check"><input name="is_hsct_with_gi_gvhd" type="checkbox"><span>Verified NHSN HSCT MBI host criterion</span></label>
+                    <label class="check"><input name="is_midline_or_peripheral_only" type="checkbox"><span>Midline/peripheral only</span></label>
+                    <label class="check"><input name="patient_has_central_line" type="checkbox" checked><span>Eligible central line present</span></label>
+                    <label class="check"><input name="line_in_place_on_doe_or_removed_day_prior" type="checkbox" checked><span>Line on DOE or removed day prior</span></label>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <div class="actions"><button class="secondary" type="reset">Reset</button><button class="primary" type="submit" disabled>Analyze CLABSI</button></div>
+          </form>
+
+          <form id="cautiForm" data-mode="cauti">
+            <div class="form-body">
+              <div class="grid">
+                <div class="field full"><label for="ca_org">Urine organism</label><input id="ca_org" name="organism_name" value="Escherichia coli" required></div>
+                <div class="field"><label for="ca_cfu">Colony count (CFU/mL)</label><input id="ca_cfu" name="colony_count_cfu_ml" type="number" min="0" step="1" value="100000" required></div>
+                <div class="field"><label for="ca_species">Species in culture</label><input id="ca_species" name="number_of_organism_species_in_culture" type="number" min="1" step="1" value="1" required></div>
+                <div class="field"><label for="ca_days">IUC days</label><input id="ca_days" name="catheter_days" type="number" min="0" step="1" value="4" required></div>
+              </div>
+              <div class="checks" style="margin-top:9px">
+                <label class="check"><input name="fever_gt_38c" type="checkbox"><span>Fever &gt;38°C</span></label>
+                <label class="check"><input name="suprapubic_tenderness" type="checkbox"><span>Suprapubic tenderness</span></label>
+                <label class="check"><input name="costovertebral_angle_pain" type="checkbox"><span>CVA pain/tenderness</span></label>
+              </div>
+              <details>
+                <summary>Advanced criteria</summary>
+                <div class="advanced">
+                  <div class="checks">
+                    <label class="check"><input name="urgency_frequency_dysuria" type="checkbox"><span>Urgency/frequency/dysuria documented</span></label>
+                    <label class="check"><input name="urinary_symptoms_occurred_without_iuc" type="checkbox"><span>Those urinary symptoms occurred while IUC was absent</span></label>
+                    <label class="check"><input name="blood_culture_matches_urine" type="checkbox"><span>Matching blood isolate</span></label>
+                    <label class="check"><input name="has_indwelling_urinary_catheter" type="checkbox" checked><span>Eligible IUC present</span></label>
+                    <label class="check"><input name="catheter_in_place_on_doe_or_removed_day_prior" type="checkbox" checked><span>IUC on DOE or removed day prior</span></label>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <div class="actions"><button class="secondary" type="reset">Reset</button><button class="primary" type="submit" disabled>Analyze CAUTI</button></div>
+          </form>
+
+          <form id="metricsForm" data-mode="metrics">
+            <div class="form-body">
+              <div class="grid">
+                <div class="field"><label for="m_obs">Observed events</label><input id="m_obs" name="observed_events" type="number" min="0" step="1" value="4" required></div>
+                <div class="field"><label for="m_pred">Predicted events</label><input id="m_pred" name="predicted_events" type="number" min="0" step="0.01" value="5.2" required></div>
+                <div class="field"><label for="m_dev">Device days</label><input id="m_dev" name="device_days" type="number" min="0" step="1" value="1200" required></div>
+                <div class="field"><label for="m_pat">Patient days</label><input id="m_pat" name="patient_days" type="number" min="1" step="1" value="3500" required></div>
+              </div>
+              <div class="status-card" style="margin-top:12px">
+                <p>SIR interval uses the engine's Byar approximation; the zero-event upper bound uses the exact Poisson 95% upper limit.</p>
+              </div>
+            </div>
+            <div class="actions"><button class="secondary" type="reset">Reset</button><button class="primary" type="submit" disabled>Calculate SIR / DUR</button></div>
+          </form>
+        </div>
+      </div>
+
+      <aside class="panel result-panel" aria-label="Analysis result">
+        <div class="result-head">
+          <div><h2>Result</h2><span id="resultMeta">No analysis yet</span></div>
+          <button id="closeResult" class="icon-btn mobile-close" type="button" aria-label="Close result">×</button>
+        </div>
+        <div id="resultContent" class="result-content" aria-live="polite">
+          <div class="empty"><div><strong>Ready when Python loads</strong>Select a module, enter the surveillance elements, then choose Analyze.</div></div>
+        </div>
+      </aside>
+    </section>
+
+    <footer>
+      <span>Screening aid only. Confirm case attribution and reporting against current NHSN manuals and facility policy.</span>
+      <span>Processing is local to this browser session.</span>
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.js"></script>
+  <script>
+    (() => {
+      "use strict";
+      const state = { pyodide:null, ready:false, mode:"clabsi" };
+      const runtime = document.getElementById("runtime");
+      const runtimeText = document.getElementById("runtimeText");
+      const resultContent = document.getElementById("resultContent");
+      const resultMeta = document.getElementById("resultMeta");
+
+      const q = (s, root=document) => root.querySelector(s);
+      const qa = (s, root=document) => [...root.querySelectorAll(s)];
+      const make = (tag, text, cls) => {
+        const n=document.createElement(tag);
+        if(text!==undefined && text!==null) n.textContent=String(text);
+        if(cls) n.className=cls;
+        return n;
+      };
+
+      function setTheme(theme) {
+        document.documentElement.dataset.theme=theme;
+        localStorage.setItem("theme",theme);
+        const btn=q("#themeToggle");
+        btn.setAttribute("aria-label", theme==="dark" ? "Switch to light theme" : "Switch to dark theme");
+        btn.title=btn.getAttribute("aria-label");
+      }
+      const storedTheme=localStorage.getItem("theme");
+      setTheme(storedTheme || "light");
+      q("#themeToggle").addEventListener("click",()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark"));
+
+      qa(".tab").forEach(btn=>btn.addEventListener("click",()=>{
+        state.mode=btn.dataset.tab;
+        qa(".tab").forEach(x=>x.setAttribute("aria-selected",String(x===btn)));
+        qa("form[data-mode]").forEach(f=>f.classList.toggle("active",f.dataset.mode===state.mode));
+        document.body.classList.remove("has-result");
+      }));
+
+      q("#closeResult").addEventListener("click",()=>document.body.classList.remove("has-result"));
+
+      function setReady(ok, message) {
+        state.ready=ok;
+        runtime.classList.toggle("ready",ok);
+        runtime.classList.toggle("error",!ok && message!=="Loading Python…");
+        runtimeText.textContent=message;
+        qa(".primary").forEach(b=>b.disabled=!ok);
+      }
+
+      function formPayload(form) {
+        const data={};
+        qa("input,select",form).forEach(el=>{
+          if(!el.name) return;
+          if(el.type==="checkbox") data[el.name]=el.checked;
+          else if(el.type==="number") data[el.name]=el.value===""?null:Number(el.value);
+          else data[el.name]=el.value;
+        });
+        if(form.dataset.mode==="clabsi") {
+          if(data.absolute_neutrophil_count_anc===null) data.absolute_neutrophil_count_anc=null;
+          const secondary=(data.primary_site_of_infection||"").trim();
+          data.primary_site_of_infection=secondary||null;
+          data.has_matching_positive_site_culture=Boolean(secondary);
+        }
+        return data;
+      }
+
+      async function pythonCall(functionName, payload) {
+        state.pyodide.globals.set("payload_json", JSON.stringify(payload));
+        state.pyodide.globals.set("function_name", functionName);
+        const raw=await state.pyodide.runPythonAsync(
+          "data = json.loads(payload_json)\n" +
+          "result = getattr(surveillance, function_name)(**data)\n" +
+          "json.dumps(asdict(result), default=lambda obj: obj.value if hasattr(obj, 'value') else str(obj))"
+        );
+        return JSON.parse(raw);
+      }
+
+      function statusTone(text) {
+        const t=String(text||"").toLowerCase();
+        if(t.includes("confirmed")||t.includes("critical")||t.includes("elevated")) return "var(--bad)";
+        if(t.includes("mbi")||t.includes("secondary")||t.includes("insufficient")||t.includes("contaminant")||t.includes("indeterminate")) return "var(--warn)";
+        return "var(--good)";
+      }
+
+      function addKeyValues(entries) {
+        const box=make("div",null,"kv");
+        for(const [k,v] of entries) {
+          box.append(make("div",k),make("div",v));
+        }
+        resultContent.append(box);
+      }
+
+      function addList(title, values) {
+        if(!values || !values.length) return;
+        const section=make("section",null,"section");
+        section.append(make("h4",title));
+        const ul=make("ul");
+        values.forEach(v=>ul.append(make("li",v)));
+        section.append(ul); resultContent.append(section);
+      }
+
+      function renderResult(mode, data) {
+        resultContent.replaceChildren();
+        const card=make("div",null,"status-card");
+        let headline, note;
+        if(mode==="metrics") {
+          headline=data.sir===null ? "SIR unavailable" : "SIR " + Number(data.sir).toFixed(3);
+          note=data.sir_interpretation;
+        } else {
+          headline=String(data.verdict||"result").replaceAll("_"," ").toUpperCase();
+          note=data.rule_out_rationale || "Selected criteria were met by the supplied inputs.";
+        }
+        const h=make("h3",headline); h.style.color=statusTone(headline);
+        card.append(h,make("p",note)); resultContent.append(card);
+
+        if(mode==="clabsi") {
+          addKeyValues([
+            ["Classification",data.lcbi_type||"None"],
+            ["Reportable CLABSI",data.is_reportable_clabsi?"Yes":"No"],
+            ["Organism",data.organism_name],
+            ["Central-line days",data.central_line_days]
+          ]);
+          addList("Criteria recorded",data.criteria_met);
+          addList("Prevention / follow-up notes",data.prevention_interventions);
+        } else if(mode==="cauti") {
+          addKeyValues([
+            ["Classification",data.cauti_type||"None"],
+            ["Reportable CAUTI/ABUTI",data.is_reportable_cauti?"Yes":"No"],
+            ["Organism",data.organism_name],
+            ["IUC days",data.catheter_days],
+            ["Colony count",Number(data.colony_count_cfu_ml).toLocaleString()+" CFU/mL"]
+          ]);
+          addList("Criteria recorded",data.criteria_met);
+          addList("Prevention / follow-up notes",data.prevention_interventions);
+        } else {
+          const ci=data.sir_confidence_interval_95 || [0,0];
+          addKeyValues([
+            ["Observed events",data.observed_events],
+            ["Predicted events",data.predicted_events],
+            ["Approx. 95% SIR interval",Number(ci[0]).toFixed(3)+" – "+Number(ci[1]).toFixed(3)],
+            ["Device utilization ratio",Number(data.device_utilization_ratio).toFixed(3)],
+            ["Rate / 1,000 device-days",Number(data.infection_rate_per_1000_device_days).toFixed(2)]
+          ]);
+        }
+        resultMeta.textContent=new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+        document.body.classList.add("has-result");
+      }
+
+      function renderError(error) {
+        resultContent.replaceChildren();
+        const card=make("div",null,"status-card");
+        const h=make("h3","Unable to calculate"); h.style.color="var(--bad)";
+        card.append(h,make("p",error instanceof Error?error.message:String(error)));
+        resultContent.append(card);
+        resultMeta.textContent="Input/runtime error";
+        document.body.classList.add("has-result");
+      }
+
+      qa("form[data-mode]").forEach(form=>{
+        form.addEventListener("submit",async e=>{
+          e.preventDefault();
+          if(!state.ready) return;
+          const button=q(".primary",form);
+          const old=button.textContent;
+          button.disabled=true; button.textContent="Working…";
+          try {
+            const fn=form.dataset.mode==="clabsi"?"evaluate_clabsi":form.dataset.mode==="cauti"?"evaluate_cauti":"calculate_sir_and_dur";
+            const result=await pythonCall(fn,formPayload(form));
+            renderResult(form.dataset.mode,result);
+          } catch(err) { renderError(err); }
+          finally { button.disabled=false; button.textContent=old; }
+        });
+        form.addEventListener("reset",()=>setTimeout(()=>document.body.classList.remove("has-result"),0));
+      });
+
+      async function boot() {
+        try {
+          setReady(false,"Loading Python…");
+          state.pyodide=await loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v314.0.7/full/"});
+          const response=await fetch("./clabsi_cauti_surveillance.py",{cache:"no-cache"});
+          if(!response.ok) throw new Error("Could not load the surveillance module ("+response.status+").");
+          state.pyodide.FS.writeFile("clabsi_cauti_surveillance.py",await response.text());
+          await state.pyodide.runPythonAsync(
+            "import json\nfrom dataclasses import asdict\nimport clabsi_cauti_surveillance as surveillance"
+          );
+          setReady(true,"Python ready");
+        } catch(err) {
+          console.error(err);
+          setReady(false,"Runtime failed");
+          renderError(new Error("Python runtime failed to load. Check your network connection and reload the page."));
+        }
+      }
+      boot();
+    })();
+  </script>
+</body>
+</html>

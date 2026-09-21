@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter
-Automates CDC NHSN device-day denominators, line dwell-time tracking, and CLABSI/CAUTI case classification to eliminate subjective manual surveillance.
+Legacy threshold-based compatibility module.
+
+This module is retained for backward compatibility with earlier examples. It is
+not the canonical CDC NHSN surveillance engine; use clabsi_cauti_surveillance.py.
 
 Domain: Infection Control
-Author: Dr. Abu Suraih Sakhri
+Author: NAME
 License: MIT
 """
 
@@ -26,21 +28,21 @@ class Severity(str):
 
 
 # ==============================================================================
-# ENRICHED CLINICAL KNOWLEDGE BASE & TELEMETRY ARBITRATION (Dr. Abu Suraih Sakhri)
+# LEGACY THRESHOLD COMPATIBILITY LAYER
 # ==============================================================================
 
 class DomainKnowledgeRegistry:
-    """Enterprise domain rules, guideline matrices, and evidence benchmarks."""
-    SYSTEM_VERSION = "2.0.0-PRO-CLINICAL"
-    ZERO_PHI_COMPLIANCE = True
-    HIPAA_SAFE_HARBOR = "ACTIVE_ON_PREMISES"
+    """Legacy metadata retained for compatibility; no compliance certification is implied."""
+    SYSTEM_VERSION = "2.1.0-LEGACY"
+    ZERO_PHI_COMPLIANCE = False
+    HIPAA_SAFE_HARBOR = "NOT_ASSESSED"
 
     @staticmethod
     def audit_security_and_integrity(payload: Dict[str, Any]) -> List[str]:
         warnings = []
         for key in payload.keys():
             if any(phi_keyword in key.lower() for phi_keyword in ["patient_name", "ssn", "mrn_raw", "dob_raw"]):
-                warnings.append(f"PHI_DEFENSE_TRIGGERED: Direct identifier '{key}' masked to synthetic token.")
+                warnings.append(f"DIRECT_IDENTIFIER_DETECTED: Remove or de-identify field '{key}' before processing.")
         return warnings
 
 class AgentAlert:
@@ -163,11 +165,11 @@ class DeviceHAICoordinator:
     def query_assistant(self, user_query: str) -> str:
         q = user_query.strip().lower()
         if "summary" in q or "status" in q:
-            return f"DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter currently tracking {len(self.case_registry)} cases in local air-gapped memory."
+            return f"Legacy compatibility coordinator is tracking {len(self.case_registry)} cases in process memory."
         elif "guidelines" in q or "protocol" in q:
-            return "All sub-agents operate under validated consensus clinical algorithms and CAP/CLSI/NCCN/WHO standards."
+            return "This legacy threshold module is not an NHSN case-definition implementation; use clabsi_cauti_surveillance.py for surveillance criteria."
         else:
-            return f"DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter executive agent online. Continuous supervisory monitoring active across all domain parameters."
+            return "Legacy compatibility coordinator is available for the retained threshold-demo API."
 
 
 coordinator = DeviceHAICoordinator()
@@ -179,8 +181,8 @@ def create_app():
         from pydantic import BaseModel
 
         app = FastAPI(
-            title="DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter",
-            description="Automates CDC NHSN device-day denominators, line dwell-time tracking, and CLABSI/CAUTI case classification to eliminate subjective manual surveillance.",
+            title="Legacy Threshold Compatibility API",
+            description="Backward-compatible threshold demonstration. Use the canonical surveillance engine for NHSN criteria.",
             version="1.0.0",
         )
 
@@ -212,7 +214,7 @@ def create_app():
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="clabsi-cauti-surveillance-agent", description="DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter")
+    parser = argparse.ArgumentParser(prog="device-hai-sentinel-legacy", description="Legacy threshold compatibility module")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Audit
@@ -229,7 +231,7 @@ def main(argv=None):
     batch_parser.add_argument("-o", "--output", default="results.csv")
 
     # Chat
-    chat_parser = subparsers.add_parser("chat", help="Query air-gapped assistant")
+    chat_parser = subparsers.add_parser("chat", help="Query legacy compatibility status")
     chat_parser.add_argument("query", nargs="+")
 
     # Serve
@@ -249,7 +251,7 @@ def main(argv=None):
         }
         dossier = coordinator.audit_case(payload)
         print("=" * 80)
-        print(f"  DEVICEHAI SENTINEL: AUTONOMOUS CENTRAL LINE & CATHETER-ASSOCIATED INFECTION ARBITER")
+        print("  LEGACY THRESHOLD COMPATIBILITY MODULE")
         print(f"  Case: {dossier['case_id']} | Status: [{dossier['overall_status']}] | Alerts: {dossier['total_alerts']}")
         print("=" * 80)
         for a in dossier["alerts"]:
@@ -294,7 +296,7 @@ def main(argv=None):
             import uvicorn
             app = create_app()
             if app:
-                print(f"Starting DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter on http://{args.host}:{args.port}")
+                print(f"Starting legacy compatibility API on http://{args.host}:{args.port}")
                 uvicorn.run(app, host=args.host, port=args.port)
         except ImportError:
             print("FastAPI / uvicorn not installed. Run 'pip install fastapi uvicorn'")

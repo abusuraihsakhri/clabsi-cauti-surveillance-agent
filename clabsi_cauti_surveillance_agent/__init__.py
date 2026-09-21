@@ -1,5 +1,29 @@
-"""
-DeviceHAI Sentinel: Autonomous Central Line & Catheter-Associated Infection Arbiter
-Automates CDC NHSN device-day denominators, line dwell-time tracking, and CLABSI/CAUTI case classification to eliminate subjective manual surveillance.
-"""
-__version__ = "2.0.0-PRO"
+"""Public package interface for the CLABSI/CAUTI surveillance utilities."""
+
+from clabsi_cauti_surveillance import (
+    CAUTIAssessment,
+    CLABSIAssessment,
+    DeviceHAISentinelEngine,
+    EpidemiologicalMetrics,
+    OrganismType,
+    SurveillanceVerdict,
+    calculate_sir_and_dur,
+    evaluate_cauti,
+    evaluate_clabsi,
+    process_batch_csv,
+)
+
+__version__ = "2.1.0"
+
+__all__ = [
+    "CAUTIAssessment",
+    "CLABSIAssessment",
+    "DeviceHAISentinelEngine",
+    "EpidemiologicalMetrics",
+    "OrganismType",
+    "SurveillanceVerdict",
+    "calculate_sir_and_dur",
+    "evaluate_cauti",
+    "evaluate_clabsi",
+    "process_batch_csv",
+]
