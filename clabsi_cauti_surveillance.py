@@ -47,6 +47,7 @@ class OrganismType(str, Enum):
 
 
 class SurveillanceVerdict(str, Enum):
+    INDETERMINATE = "indeterminate_requires_terminology_review"
     CONFIRMED_CLABSI = "confirmed_clabsi"
     MBI_LCBI = "mbi_lcbi"
     SECONDARY_BSI = "secondary_bsi"
@@ -100,6 +101,8 @@ NHSN_ORGANISM_REGISTRY: Dict[str, Dict[str, Any]] = {
     "viridans streptococci": {"type": OrganismType.COMMON_COMMENSAL, "is_mbi": True},
     "streptococcus mitis": {"type": OrganismType.COMMON_COMMENSAL, "is_mbi": True},
     "streptococcus oralis": {"type": OrganismType.COMMON_COMMENSAL, "is_mbi": True},
+    "rothia mucilaginosa": {"type": OrganismType.COMMON_COMMENSAL, "is_mbi": True},
+    "rothia dentocariosa": {"type": OrganismType.COMMON_COMMENSAL, "is_mbi": True},
 }
 
 
@@ -148,9 +151,23 @@ def evaluate_clabsi(
     the caller has verified the current NHSN allogeneic-HSCT host criterion.
     """
     org_key = organism_name.strip().lower()
-    org_info = NHSN_ORGANISM_REGISTRY.get(org_key, {
-        "type": OrganismType.RECOGNIZED_PATHOGEN, "is_mbi": False
-    })
+    org_info = NHSN_ORGANISM_REGISTRY.get(org_key)
+    if org_info is None:
+        return CLABSIAssessment(
+            verdict=SurveillanceVerdict.INDETERMINATE,
+            lcbi_type=None,
+            is_reportable_clabsi=False,
+            organism_name=organism_name,
+            organism_type="terminology_review_required",
+            central_line_days=central_line_days,
+            criteria_met=[],
+            rule_out_rationale=(
+                "Organism is not present in this project's limited local registry. "
+                "Verify pathogen/common-commensal status in the current NHSN Terminology Browser "
+                "before assigning an LCBI or CLABSI classification."
+            ),
+            prevention_interventions=["Complete NHSN terminology review before surveillance classification."],
+        )
     org_type = org_info["type"]
     is_mbi_eligible = org_info.get("is_mbi", False)
 
@@ -272,7 +289,7 @@ def evaluate_clabsi(
                         organism_type=org_type.value,
                         central_line_days=central_line_days,
                         criteria_met=[
-                            f"Common commensal ({organism_name}) from >= 2 separate blood cultures.",
+                            f"Common commensal ({organism_name}) from >= 2 matching blood specimens collected on separate occasions.",
                             "Clinical signs of systemic infection present.",
                             "Host meets MBI criteria (neutropenia or HSCT).",
                         ],
@@ -307,7 +324,7 @@ def evaluate_clabsi(
                     organism_name=organism_name,
                     organism_type=org_type.value,
                     central_line_days=central_line_days,
-                    criteria_met=[f"Common commensal ({organism_name}) in 2 blood cultures but NO clinical symptoms (fever/hypotension/chills)."],
+                    criteria_met=[f"Common commensal ({organism_name}) in >=2 matching blood specimens but NO clinical symptoms (fever/hypotension/chills)."],
                     rule_out_rationale="Common commensal isolated without documented fever (>38.0°C), chills, or hypotension (SBP < 90). Does NOT meet LCBI-2 criteria.",
                     prevention_interventions=["Document surveillance criteria and continue clinical assessment per local policy."],
                 )
@@ -320,8 +337,8 @@ def evaluate_clabsi(
                 organism_name=organism_name,
                 organism_type=org_type.value,
                 central_line_days=central_line_days,
-                criteria_met=[f"Single blood culture isolate of common commensal ({organism_name})."],
-                rule_out_rationale="Single positive blood culture with common commensal is classified as a contaminant / non-event per NHSN rules.",
+                criteria_met=[f"Only one qualifying blood specimen with common commensal ({organism_name})."],
+                rule_out_rationale="A single qualifying blood specimen with a common commensal does not meet the LCBI common-commensal criterion.",
                 prevention_interventions=["Audit venipuncture skin antisepsis technique."],
             )
 
@@ -379,7 +396,7 @@ def evaluate_cauti(
     org_key = organism_name.strip().lower()
 
     # 1. Exclusion of Yeast / Fungi per NHSN CAUTI Criteria
-    if any(fungus in org_key for fungus in ["candida", "yeast", "torulopsis", "aspergillus", "fungus"]):
+    if any(excluded in org_key for excluded in ["candida", "yeast", "torulopsis", "aspergillus", "mold", "fungus", "dimorphic", "parasite", "trichomonas"]):
         return CAUTIAssessment(
             verdict=SurveillanceVerdict.CONTAMINANT_OR_COLONIZATION,
             cauti_type=None,
