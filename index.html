@@ -378,7 +378,7 @@
       function statusTone(text) {
         const t=String(text||"").toLowerCase();
         if(t.includes("confirmed")||t.includes("critical")||t.includes("elevated")) return "var(--bad)";
-        if(t.includes("mbi")||t.includes("secondary")||t.includes("insufficient")||t.includes("contaminant")) return "var(--warn)";
+        if(t.includes("mbi")||t.includes("secondary")||t.includes("insufficient")||t.includes("contaminant")||t.includes("indeterminate")) return "var(--warn)";
         return "var(--good)";
       }
 
