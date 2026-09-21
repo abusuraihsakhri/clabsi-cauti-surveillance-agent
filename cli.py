@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Command-Line Interface for CDC NHSN CLABSI & CAUTI Autonomous Surveillance Engine.
+Command-Line Interface for the CLABSI & CAUTI surveillance utilities.
 
 Usage:
     python cli.py clabsi --organism "Staphylococcus aureus" --cultures 1 --days 5 --fever
@@ -44,6 +44,7 @@ def cmd_clabsi(args):
         hypothermia_lt_36c=args.hypothermia,
         apnea_or_bradycardia=args.apnea_bradycardia,
         absolute_neutrophil_count_anc=args.anc,
+        neutropenia_qualifying_days=args.anc_days,
         is_hsct_with_gi_gvhd=args.hsct_gvhd,
         has_matching_positive_site_culture=bool(args.secondary_site),
         primary_site_of_infection=args.secondary_site,
@@ -86,6 +87,7 @@ def cmd_cauti(args):
         suprapubic_tenderness=args.suprapubic,
         costovertebral_angle_pain=args.cva_pain,
         urgency_frequency_dysuria=args.dysuria,
+        urinary_symptoms_occurred_without_iuc=args.urinary_symptoms_without_iuc,
         blood_culture_matches_urine=args.blood_match,
     )
 
@@ -132,8 +134,8 @@ def cmd_metrics(args):
         print(f"  Predicted HAIs:          {res.predicted_events}")
         print(f"  Device Days:             {res.device_days} (Patient Days: {res.patient_days})")
         print(f"  Standardized Ratio (SIR):{res.sir if res.sir is not None else 'N/A'}")
-        print(f"  95% Confidence Interval: [{res.sir_confidence_interval_95[0]:.3f}, {res.sir_confidence_interval_95[1]:.3f}]")
-        print(f"  Statistical Verdict:     {res.sir_interpretation}")
+        print(f"  Approx. 95% SIR Interval:[{res.sir_confidence_interval_95[0]:.3f}, {res.sir_confidence_interval_95[1]:.3f}]")
+        print(f"  Interpretation:          {res.sir_interpretation}")
         print(f"  Device Utilization (DUR):{res.device_utilization_ratio:.3f}")
         print(f"  Incidence Rate:          {res.infection_rate_per_1000_device_days:.2f} per 1,000 device days")
         print("=" * 70)
@@ -161,8 +163,9 @@ def cmd_interactive(args):
         cult_str = input("Number of positive blood culture bottles (default 1): ").strip() or "1"
         days_str = input("Central line dwell time in calendar days (default 4): ").strip() or "4"
         fever = input("Fever (>38.0°C) present? (y/n, default y): ").lower().startswith("y")
-        anc_str = input("Absolute Neutrophil Count ANC in /mm³ (optional, e.g. 350 for neutropenia): ").strip()
+        anc_str = input("Absolute Neutrophil Count ANC in /mm³ (optional): ").strip()
         anc = float(anc_str) if anc_str else None
+        anc_days_str = input("Separate days with ANC/WBC <500 in the 7-day MBI window (default 0): ").strip() or "0"
         sec = input("Secondary matching infection site if any (e.g. Urine, Lung, SSI, or leave blank): ").strip()
 
         res = evaluate_clabsi(
@@ -171,6 +174,7 @@ def cmd_interactive(args):
             central_line_days=int(days_str),
             fever_gt_38c=fever,
             absolute_neutrophil_count_anc=anc,
+            neutropenia_qualifying_days=int(anc_days_str),
             has_matching_positive_site_culture=bool(sec),
             primary_site_of_infection=sec if sec else None,
         )
@@ -215,7 +219,7 @@ def cmd_interactive(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="clabsi-cauti-surveillance-agent",
-        description="CDC NHSN CLABSI & CAUTI Autonomous Surveillance and HAI Epidemiological Arbiter",
+        description="CLABSI/CAUTI surveillance screening and epidemiological utilities based on selected 2026 CDC NHSN criteria",
     )
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
 
@@ -232,8 +236,9 @@ def main(argv=None):
     p_clabsi.add_argument("--age", type=int, default=45, help="Patient age in years")
     p_clabsi.add_argument("--hypothermia", action="store_true", help="Hypothermia < 36.0°C (infants)")
     p_clabsi.add_argument("--apnea-bradycardia", action="store_true", help="Apnea or bradycardia (infants)")
-    p_clabsi.add_argument("--anc", type=float, help="Absolute neutrophil count (for MBI)")
-    p_clabsi.add_argument("--hsct-gvhd", action="store_true", help="HSCT with GI GVHD (for MBI)")
+    p_clabsi.add_argument("--anc", type=float, help="Absolute neutrophil count (for MBI host-factor screening)")
+    p_clabsi.add_argument("--anc-days", type=int, default=0, help="Separate days with ANC/WBC <500 in the 7-day MBI window; NHSN requires >=2")
+    p_clabsi.add_argument("--hsct-gvhd", action="store_true", help="Caller-verified current NHSN allogeneic-HSCT GI-GVHD/diarrhea host criterion")
     p_clabsi.add_argument("--secondary-site", help="Matching primary infection site (e.g. Urine, Lung, SSI)")
     p_clabsi.add_argument("--removed-early", action="store_true", help="Line removed > 1 day prior")
     p_clabsi.add_argument("--no-central-line", action="store_true", help="No central line present")
@@ -248,8 +253,9 @@ def main(argv=None):
     p_cauti.add_argument("--fever", action="store_true", help="Fever > 38.0°C")
     p_cauti.add_argument("--suprapubic", action="store_true", help="Suprapubic tenderness")
     p_cauti.add_argument("--cva-pain", action="store_true", help="Costovertebral angle pain/tenderness")
-    p_cauti.add_argument("--dysuria", action="store_true", help="Urinary urgency, frequency, dysuria")
-    p_cauti.add_argument("--blood-match", action="store_true", help="Matching organism in blood (ABUTI)")
+    p_cauti.add_argument("--dysuria", action="store_true", help="Urinary urgency, frequency, or dysuria")
+    p_cauti.add_argument("--urinary-symptoms-without-iuc", action="store_true", help="Confirm urinary urgency/frequency/dysuria occurred while IUC was not in place")
+    p_cauti.add_argument("--blood-match", action="store_true", help="Matching bacterium/pathogen in blood (ABUTI)")
     p_cauti.add_argument("--removed-early", action="store_true", help="Catheter removed > 1 day prior")
     p_cauti.add_argument("--no-catheter", action="store_true", help="No indwelling catheter")
 
