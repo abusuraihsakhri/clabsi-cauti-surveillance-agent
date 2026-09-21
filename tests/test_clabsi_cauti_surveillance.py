@@ -70,7 +70,7 @@ class TestCLABSISurveillance(unittest.TestCase):
         )
         self.assertEqual(res.verdict, SurveillanceVerdict.CONTAMINANT_OR_COLONIZATION)
         self.assertFalse(res.is_reportable_clabsi)
-        self.assertIn("contaminant", res.rule_out_rationale.lower())
+        self.assertIn("does not meet", res.rule_out_rationale.lower())
 
     def test_lcbi_2_two_commensal_bottles_no_symptoms_rule_out(self):
         res = evaluate_clabsi(
