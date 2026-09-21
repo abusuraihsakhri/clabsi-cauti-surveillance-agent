@@ -23,7 +23,7 @@ def test_coordinator():
     assert dossier["total_alerts"] == 0
 
     ans = coord.query_assistant("What are the guidelines?")
-    assert "guidelines" in ans or "standards" in ans
+    assert "NHSN" in ans
 
 
 def test_cli():
@@ -33,5 +33,6 @@ def test_cli():
 
 def test_domain_registry():
     from device_hai_sentinel import DomainKnowledgeRegistry
-    assert DomainKnowledgeRegistry.ZERO_PHI_COMPLIANCE is True
-    assert "PRO" in DomainKnowledgeRegistry.SYSTEM_VERSION
+    assert DomainKnowledgeRegistry.ZERO_PHI_COMPLIANCE is False
+    assert DomainKnowledgeRegistry.HIPAA_SAFE_HARBOR == "NOT_ASSESSED"
+    assert "LEGACY" in DomainKnowledgeRegistry.SYSTEM_VERSION
